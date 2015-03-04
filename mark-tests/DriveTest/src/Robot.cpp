@@ -8,8 +8,15 @@ class Robot: public IterativeRobot
 private:
 	Joystick *joystick;
 	Joystick *steeringWheel;
+
+#if BUILD_VERSION == COMPETITION
 	Talon * leftDrive;
 	Talon * rightDrive;
+#else
+	Victor * leftDrive;
+	Victor * rightDrive;
+#endif
+
 	Encoder *leftEncoder;
 	Encoder *rightEncoder;
 	DriveSystem *driveSystem;
@@ -22,8 +29,13 @@ private:
 		steeringWheel = new Joystick(1);
 
 // Instantiate the drive controllers
+#if BUILD_VERSION == COMPETITION
 		leftDrive = new Talon(CHAN_LEFT_DRIVE_TALONSR);
 		rightDrive = new Talon(CHAN_RIGHT_DRIVE_TALONSR);
+#else
+		leftDrive = new Victor(CHAN_LEFT_DRIVE_TALONSR);
+		rightDrive = new Victor(CHAN_RIGHT_DRIVE_TALONSR);
+#endif
 
 // Instantiate and initialize the encoders
 		leftEncoder = new Encoder(CHAN_ENCODER_LEFT_A, CHAN_ENCODER_LEFT_B, false, Encoder::EncodingType::k4X);
@@ -48,10 +60,8 @@ private:
 
 	void TeleopInit()
 	{
-
-
 		//Initialize PID
-		driveSystem->SetPIDDrive(true);
+		driveSystem->SetPIDDrive(PID_CONFIG);
 
 		//Set Wheel Diameter
 		driveSystem->SetWheelDiameter(WHEEL_DIAMETER);
