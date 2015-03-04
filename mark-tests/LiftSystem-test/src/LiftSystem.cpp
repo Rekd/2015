@@ -8,8 +8,6 @@
 #include "LiftSystem.h"
 
 
-
-
 LiftSystem::LiftSystem(CANTalon *pforkMotor, CANTalon *pliftMotor, Counter *pgearToothCounter, Encoder *liftEnc,
 		DigitalInput *forkLimitMin, DigitalInput *forkLimitMax, DigitalInput *liftLimitMin,
 		DigitalInput *liftLimitMax, Joystick *pjoystick)
@@ -23,7 +21,7 @@ LiftSystem::LiftSystem(CANTalon *pforkMotor, CANTalon *pliftMotor, Counter *pgea
 	forkLimitSwitchMax = forkLimitMax;
 	liftLimitSwitchMin = liftLimitMin;
 	liftLimitSwitchMax = liftLimitMax;
-	joystick = pjoystick;
+	operatorBox = pjoystick;
 
 	targetForkGearCount = 0;
 	targetLiftEncoderCount = 0;
@@ -44,29 +42,29 @@ LiftSystem::~LiftSystem()
 	delete forkLimitSwitchMax;
 	delete liftLimitSwitchMin;
 	delete liftLimitSwitchMax;
-	delete joystick;
+	delete operatorBox;
 }
 
 
 //Limit Switches:
 bool LiftSystem::GetForkLimitSwitchMin()
 {
-	return (LiftSystem::forkLimitSwitchMin->Get());
+	return (!LiftSystem::forkLimitSwitchMin->Get());
 }
 
 bool LiftSystem::GetForkLimitSwitchMax()
 {
-	return (LiftSystem::forkLimitSwitchMax->Get());
+	return (!LiftSystem::forkLimitSwitchMax->Get());
 }
 
 bool LiftSystem::GetLiftLimitSwitchMin()
 {
-	return liftLimitSwitchMin->Get();
+	return !liftLimitSwitchMin->Get();
 }
 
 bool LiftSystem::GetLiftLimitSwitchMax()
 {
-	return liftLimitSwitchMax->Get();
+	return !liftLimitSwitchMax->Get();
 }
 
 //Motors
@@ -114,20 +112,24 @@ void LiftSystem::ResetGearCounter()
 
 bool LiftSystem::IsOpenWideButtonPressed()
 {
-	return(joystick->GetRawButton(1));
+	return(operatorBox->GetRawButton(1));
 }
 
 bool LiftSystem::IsOpenNarrowButtonPressed()
 {
-	return(joystick->GetRawButton(2));
+	return(operatorBox->GetRawButton(2));
 }
 
 bool LiftSystem::IsCloseButtonPressed()
 {
-	return(joystick->GetRawButton(3));
+	return(operatorBox->GetRawButton(3));
 }
 
+//Operator Box
 
+void
+
+//Main
 void LiftSystem::Update()
 {
 	char myString [64];
@@ -174,7 +176,7 @@ void LiftSystem::Update()
 					    // start lift moving
 						openedNarrowSubState = narrow_changing_lift;   // change openNarrowSS to narrow_raising_lift;
 					}
-					if (!GetForkLimitSwitchMin())   // has fork reached inner limit switch (missed pickup)...if so
+					if (GetForkLimitSwitchMin())   // has fork reached inner limit switch (missed pickup)...if so
 					{
 						sprintf(myString, "inner lim\n");
 						SmartDashboard::PutString("DB/String 3", myString);
@@ -186,7 +188,7 @@ void LiftSystem::Update()
 					}
 					break;
 				case narrow_changing_lift:
-/* add back later
+
 					if (CheckLiftHasReachedTarget())   // has lift reached its new position?  If so
 					{
 						SetLiftMotor(0.0);  // stop lift motor
@@ -195,7 +197,6 @@ void LiftSystem::Update()
 						// turn on closed_C_Pos_One LED
 						robotState = closed_C_Pos_One;  // change robotState to closed_C_Pos_One
 					}
-					*/
 					break;
 				case narrow_error_recovery:
 					sprintf(myString, "in error rec\n");
@@ -235,49 +236,72 @@ void LiftSystem::Update()
 			switch (openedWideSubState)
 			{
 				case wide_idle:
-					if (IsOpenNarrowButtonPressed())          // check for open narrow button press...if pressed
+					if (IsOpenNarrowButtonPressed())   // check for open narrow button press...if pressed,
 					{
-						// calculate new fork position
-						// start fork moving
-						// change openWideSS to opening_narrow
-					// check for close button press...if pressed
-						// calculate new fork position
-						// start fork closing
-						// change openWideSS to wide_closing
+						sprintf(myString, "rec ON\n");
+						SmartDashboard::PutString("DB/String 3", myString);
+						ResetGearCounter();
+						SetForkTarget(NARROW_WIDE_DIFF);  // calculate new fork position
+						SetForkMotor(FORK_MOTOR_IN_SPEED); // start fork moving
+						openedWideSubState = opening_narrow; // change openWideSS to opening_narrow
+					}
+					else if (IsCloseButtonPressed()) // check for close button press...if pressed
+					{
+						sprintf(myString, "closing\n");
+						SmartDashboard::PutString("DB/String 3", myString);
+						ResetGearCounter();
+						SetForkTarget(CLOSING_COUNT); // calculate new fork position
+						SetForkMotor(FORK_MOTOR_IN_SPEED); // start fork closing
+						openedNarrowSubState = wide_closing_fork; // change openWideSS to wide_closing
+					}
 					break;
 				case wide_closing_fork:
-					// has fork motor current spiked?  If so
-						// stop fork motor
-						// calculate new lift position - closed_C_Pos_One
-						// start lift moving
-						// change openWideSS to wide_raising_lift;
-					// has fork reached inner limit switch (missed pickup)...if so
-						// stop fork motion
-						// calculate fork position for open wide position
-						// start fork motor opening
-						// change openWide_SS to wide_error_recovery
+					if (CheckForkMotorCurrentSpike()) // has fork motor current spiked?  If so,
+					{
+						sprintf(myString, "curr spike\n");
+						SmartDashboard::PutString("DB/String 3", myString);
+						SetForkMotor(0.0);		// stop fork motor
+						SetLiftTarget(POS_ONE);// calculate new lift position - closed_C_Pos_One
+						SetLiftMotor(LIFT_MOTOR_UP_SPEED);// start lift moving
+						openedNarrowSubState = wide_changing_lift;// change openWideSS to wide_raising_lift;
+					}
+
+					if (GetForkLimitSwitchMin())   // has fork reached inner limit switch (missed pickup)...if so
+					{
+						sprintf(myString, "inner lim\n");
+						SmartDashboard::PutString("DB/String 3", myString);
+						SetForkMotor(0.0);         // stop fork motion
+						ResetGearCounter();
+						SetForkTarget(OPEN_WIDE_COUNT);            // calculate fork position for open wide position
+						SetForkMotor(FORK_MOTOR_OUT_SPEED);          // start fork motor opening
+						openedNarrowSubState = wide_error_recovery;  // change openWide_SS to wide_error_recovery
+					}
 					break;
 				case wide_changing_lift:
-					// has lift reached its new position?  If so
-						// stop lift motor
-						// change closedSS to closed_idle
-						// change robotState to closed_C_Pos_One
+					if (CheckLiftHasReachedTarget())  // has lift reached its new position?  If so,
+					{
+						SetLiftMotor(0.0); // stop lift motor
+						ClosedSubState = closed_idle; // change closedSS to closed_idle
+						RobotState = closed_C_Pos_One; // change robotState to closed_C_Pos_One
+					}
 					break;
-				case wide_error_recovery:
+				case wide_error_recovery: //Do later
 					// has fork reached open_narrow position?  if so
 						// stop fork motion
 						// set openWideSS to wide_idle
 					break;
 				case opening_narrow:
-					// has fork reached its new position?  If so
-						// stop fork motor
-						// change robotState to opened_narrow_GP
+					if(CheckForkHasReachedTarget()) // has fork reached its new position?  If so,
+					{
+						SetForkMotor(0.0);// stop fork motor
+						robotState = opened_narrow_GP;// change robotState to opened_narrow_GP
+					}
 					break;
 			}
 			break;
 
 		case closed_C_Pos_One:
-			switch closedSS
+			switch (closedSS)
 			{
 				case closed_idle:
 					// check for alternate closed button press...if pressed
@@ -299,14 +323,14 @@ void LiftSystem::Update()
 						// change robotState to closed_C_Pos_Two,  closed_C_Pos_Three, or closed_C_Pos_Step, as appropriate
 					break;
 				case releasing_lowering:
-					// has lift reached new postion?  if so
+					// has lift reached new position?  if so
 						// stop lift motor
 						// calculate new fork position - slightly wider
 						// start fork motor
 						// set closedSS to releasing_open_forks
-					break
+					break;
 				case releasing_open_forks:
-					// has fork motors reached new position?  if os
+					// has fork motors reached new position?  if so,
 						// stop fork motor
 						// set releasedSS to released_idle
 						// set robotState to released
@@ -314,7 +338,7 @@ void LiftSystem::Update()
 			}
 			break;
 		case closed_C_Pos_Two:
-			switch closedSS
+			switch (closedSS)
 			{
 				case closed_idle:
 					// Check for alternate closed button press...if pressed,
@@ -353,7 +377,7 @@ void LiftSystem::Update()
 				}
 				break;
 		case closed_C_Pos_three:
-			switch closedSS
+			switch (closedSS)
 			{
 				case closed_idle:
 					// Check for alternate closed button press...if pressed,
@@ -392,7 +416,7 @@ void LiftSystem::Update()
 				}
 		break;
 		case closed_C_Pos_Step:
-			switch closedSS
+			switch (closedSS)
 			{
 			case closed_idle:
 				// Check for alternate closed button press...if pressed,
@@ -431,7 +455,7 @@ void LiftSystem::Update()
 			}
 			break;
 		case released:
-			switch releasedSS
+			switch (releasedSS)
 			{
 			case released_idle:
 				// check for two "open" buttons.  if pressed

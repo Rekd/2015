@@ -57,7 +57,7 @@ private:
 	Encoder     *liftEncoder;
 	Counter     *gearToothCounter;
 	DigitalInput *forkLimitSwitchMin, *forkLimitSwitchMax, *liftLimitSwitchMin, *liftLimitSwitchMax;
-	Joystick    *joystick;
+	Joystick    *OperatorBox;
 
 // state variables
 	RobotState  robotState;
