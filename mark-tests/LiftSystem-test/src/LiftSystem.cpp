@@ -8,7 +8,7 @@
 #include "LiftSystem.h"
 
 
-LiftSystem::LiftSystem(CANTalon *pforkMotor, CANTalon *pliftMotor, Counter *pgearToothCounter, Encoder *liftEnc,
+LiftSystem::LiftSystem(CANSpeedController *pforkMotor, CANSpeedController *pliftMotor, Counter *pgearToothCounter, Encoder *liftEnc,
 		DigitalInput *forkLimitMin, DigitalInput *forkLimitMax, DigitalInput *liftLimitMin,
 		DigitalInput *liftLimitMax, Joystick *pjoystick)
 {
@@ -49,22 +49,24 @@ LiftSystem::~LiftSystem()
 //Limit Switches:
 bool LiftSystem::GetForkLimitSwitchMin()
 {
-	return (!LiftSystem::forkLimitSwitchMin->Get());
+	//invert so that TRUE when limit switch is closed and FALSE when limit switch is open
+	return !(forkLimitSwitchMin->Get());
 }
 
 bool LiftSystem::GetForkLimitSwitchMax()
 {
-	return (!LiftSystem::forkLimitSwitchMax->Get());
+	//invert so that TRUE when limit switch is closed and FALSE when limit switch is open
+	return !(forkLimitSwitchMax->Get());
 }
 
 bool LiftSystem::GetLiftLimitSwitchMin()
 {
-	return !liftLimitSwitchMin->Get();
+	return !(liftLimitSwitchMin->Get());
 }
 
 bool LiftSystem::GetLiftLimitSwitchMax()
 {
-	return !liftLimitSwitchMax->Get();
+	return !(liftLimitSwitchMax->Get());
 }
 
 //Motors
