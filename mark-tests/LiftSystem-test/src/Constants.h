@@ -41,8 +41,8 @@
 #define FEED_FORWARD_TERM           0.125
 #define FORK_MOTOR_IN_SPEED         0.4
 #define FORK_MOTOR_OUT_SPEED        -0.4
-#define LIFT_MOTOR_IN_SPEED         0.4
-#define LIFT_MOTOR_OUT_SPEED        -0.4
+#define LIFT_MOTOR_UP_SPEED         0.4
+#define LIFT_MOTOR_DOWN_SPEED        -0.4
 #define OPEN_NARROW_COUNT           100
 #define OPEN_WIDE_COUNT             365
 #define WIDE_NARROW_DIFF            265
@@ -54,6 +54,8 @@
 #define POS_TWO						400  //NOT ACCURATE, RANDOM
 #define POS_THREE					800  //NOT ACCURATE, RANDOM
 #define POS_STEP					300  //NOT ACCURATE, RANDOM
+#define LIFT_OFFSET					30  //NOT ACCURATE, RANDOM
+#define FORK_OFFSET					30  //NOT ACCURATE, RANDOM
 
 #define MAX_RPS						8
 

@@ -105,6 +105,14 @@ bool LiftSystem::CheckForkHasReachedTarget()
 		return false;
 }
 
+bool LiftSystem::CheckLiftHasReachedTarget()
+{
+	if (liftEncoder->Get() >= targetLiftEncoderCount)  // reached target
+		return true;
+	else
+		return false;
+}
+
 void LiftSystem::ResetGearCounter()
 {
 	gearToothCounter->Reset();
@@ -122,12 +130,43 @@ bool LiftSystem::IsOpenNarrowButtonPressed()
 
 bool LiftSystem::IsCloseButtonPressed()
 {
-	return(operatorBox->GetRawButton(3));
+	return(operatorBox->GetRawButton(3));  //CHECK NUMBER
 }
 
-//Operator Box
+bool LiftSystem::IsCarryButtonOnePressed()
+{
+	return(operatorBox->GetRawButton(4));  //CHECK NUMBER
+}
 
-void
+bool LiftSystem::IsCarryButtonTwoPressed()
+{
+	return(operatorBox->GetRawButton(5));  //CHECK NUMBER
+}
+
+bool LiftSystem::IsCarryButtonThreePressed()
+{
+	return(operatorBox->GetRawButton(6)); //CHECK NUMBER
+}
+
+bool LiftSystem::IsCarryButtonStepPressed()
+{
+	return(operatorBox->GetRawButton(7)); //CHECK NUMBER
+}
+
+bool LiftSystem::IsReleaseButtonPressed()
+{
+	return(operatorBox->GetRawButton(8)); //CHECK NUMBER
+}
+
+bool LiftSystem::IsReleaseWideButtonPressed()
+{
+	return(operatorBox->GetRawButton(9)); //CHECK NUMBER
+}
+
+bool LiftSystem::IsReleaseNarrowButtonPressed()
+{
+	return(operatorBox->GetRawButton(10)); //CHECK NUMBER
+}
 
 //Main
 void LiftSystem::Update()
@@ -147,7 +186,7 @@ void LiftSystem::Update()
 			switch (openedNarrowSubState)
 			{
 				case narrow_idle:
-					if (IsOpenWideButtonPressed())           // check for open wide button press...if pressed
+					if (IsOpenWideButtonPressed())    // check for open wide button press...if pressed
 					{
 						sprintf(myString, "rec OW\n");
 						SmartDashboard::PutString("DB/String 3", myString);
@@ -305,35 +344,70 @@ void LiftSystem::Update()
 			{
 				case closed_idle:
 					// check for alternate closed button press...if pressed
-						// calculate new lift position based on which button is pressed
-						// start lift motor moving to new position
-						// set closedSS to closed_changing_level
-					// check for release button press...if pressed
-						// calculate new lift position (slightly lower)
-						// start lift motor
-					    // set closedSS to releasing_lowering
+					// calculate new lift position based on which button is pressed
+					if (IsCarryButtonTwoPressed())
+					{
+						SetLiftTarget(POS_TWO);
+						SetLiftMotor(LIFT_MOTOR_UP_SPEED);
+					}else if (IsCarryButtonThreePressed())
+					{
+						SetLiftTarget(POS_THREE);
+						SetLiftMotor(LIFT_MOTOR_UP_SPEED);
+					}else if (IsCarryButtonStepPressed())
+					{
+						SetLiftTarget(POS_STEP);
+						SetLiftMotor(LIFT_MOTOR_UP_SPEED);
+					}
+					// start lift motor moving to new position
+					closedSS = closed_changing_level;	// set closedSS to closed_changing_level
+
+					if (IsReleaseButtonPressed()) // check for release button press...if pressed
+					{
+						SetLiftTarget(liftEncoder->Get()-LIFT_OFFSET);// calculate new lift position (slightly lower)
+						SetLiftMotor(LIFT_MOTOR_DOWN_SPEED);// start lift motor
+						closedSS = releasing_lowering;    // set closedSS to releasing_lowering
+					}
 					break;
 
 				case closed_changing_level:
-					// has lift reached new position?  if so
-						// stop lift motor
-						// change closedSS to closed_idle
+					if(CheckLiftHasReachedTarget()) // has lift reached new position?  if so
+					{
+						SetLiftMotor(0.0); // stop lift motor
+						closedSS = closed_idle; // change closedSS to closed_idle
 						// turn off closed_C_Pos_One LED
 						// Turn on closed_C_Pos_Two,  closed_C_Pos_Three, or closed_C_Pos_Step LED as appropriate
-						// change robotState to closed_C_Pos_Two,  closed_C_Pos_Three, or closed_C_Pos_Step, as appropriate
+						switch(targetLiftEncoderCount) // change robotState to closed_C_Pos_Two,  closed_C_Pos_Three, or closed_C_Pos_Step, as appropriate
+						{
+							case POS_TWO:
+								robotState = closed_C_Pos_Two;
+								break;
+
+							case POS_THREE:
+								robotState = closed_C_Pos_Three;
+								break;
+
+							case POS_STEP:
+								robotState = closed_C_Pos_Step;
+								break;
+						}
+					}
 					break;
 				case releasing_lowering:
-					// has lift reached new position?  if so
-						// stop lift motor
-						// calculate new fork position - slightly wider
-						// start fork motor
-						// set closedSS to releasing_open_forks
+					if (CheckLiftHasReachedTarget()) // has lift reached new position?  if so
+					{
+						SetLiftMotor(0.0);// stop lift motor
+						SetForkTarget(gearToothCounter->Get() + FORK_OFFSET);// calculate new fork position - slightly wider
+						SetForkMotor(FORK_MOTOR_OUT_SPEED);// start fork motor
+						closedSS = releasing_open_forks; // set closedSS to releasing_open_forks
+					}
 					break;
 				case releasing_open_forks:
-					// has fork motors reached new position?  if so,
-						// stop fork motor
-						// set releasedSS to released_idle
-						// set robotState to released
+					if (CheckForkHasReachedTarget()) // has fork motors reached new position?  if so,
+					{
+						SetForkMotor(0.0);// stop fork motor
+						releasedSS = released_idle;// set releasedSS to released_idle
+						robotState = released;// set robotState to released
+					}
 					break;
 			}
 			break;
@@ -342,76 +416,139 @@ void LiftSystem::Update()
 			{
 				case closed_idle:
 					// Check for alternate closed button press...if pressed,
-						// 1) calculate new lift position based on which button is pressed,
-						// 2) start lift motor moving to new position,
-						// 3) set closedSS to closed_changing_level.
-					// Check for release button press...if pressed,
-						// 1) calculate new lift position (slightly lower),
-						// 2) start lift motor,
-						// 3) set closedSS to releasing_lowering.
+					// 1) calculate new lift position based on which button is pressed,
+					if (IsCarryButtonTwoPressed())
+					{
+						SetLiftTarget(POS_ONE);
+						SetLiftMotor(LIFT_MOTOR_DOWN_SPEED); // 2) start lift motor moving to new position,
+					}else if (IsCarryButtonThreePressed())
+					{
+						SetLiftTarget(POS_THREE);
+						SetLiftMotor(LIFT_MOTOR_UP_SPEED); // 2) start lift motor moving to new position,
+					}else if (IsCarryButtonStepPressed())
+					{
+						SetLiftTarget(POS_STEP);
+						SetLiftMotor(LIFT_MOTOR_DOWN_SPEED); // 2) start lift motor moving to new position,
+					}
+					closedSS = closed_changing_level;	// 3) set closedSS to closed_changing_level.
+					if (IsReleaseButtonPressed()) // Check for release button press...if pressed,
+					{
+						SetLiftTarget(liftEncoder->Get() - LIFT_OFFSET); // 1) calculate new lift position (slightly lower),
+						SetLiftMotor(FORK_MOTOR_OUT_SPEED); // 2) start lift motor,
+						closedSS = releasing_lowering; // 3) set closedSS to releasing_lowering.
+					}
 					break;
 
 				case closed_changing_level:
-					// Has lift reached new position?  If so,
-						// 1) Stop lift motor,
+					if(CheckLiftHasReachedTarget()) // Has lift reached new position?  If so,
+					{
+						SetLiftMotor(0.0);// 1) Stop lift motor,
 						// turn off closed_C_Pos_Two LED
 						// Turn on closed_C_Pos_One, closed_C_Pos_Three, or closed_C_Pos_Step LED as appropriate
-						// 2) change closedSS to closed_idle,
-						// 3) change robotState to closed_C_Pos_One,  closed_C_Pos_Three, or closed_C_Pos_Step, as appropriate.
+						closedSS = closed_idle;// 2) change closedSS to closed_idle,
+						switch(targetLiftEncoderCount) // 3) change robotState to closed_C_Pos_One,  closed_C_Pos_Three, or closed_C_Pos_Step, as appropriate.
+						{
+							case POS_ONE:
+								robotState = closed_C_Pos_One;
+								break;
+
+							case POS_THREE:
+								robotState = closed_C_Pos_Three;
+								break;
+
+							case POS_STEP:
+								robotState = closed_C_Pos_Step;
+								break;
+						}
+					}
 					break;
 
 				case releasing_lowering:
-					// Has lift reached new position? If so,
-						// 1) Stop lift motor,
-						// 2) calculate new fork position - slightly wider,
-						// 3) start fork motor,
-						// 4) set closedSS to releasing_open_forks.
+					if (CheckLiftHasReachedTarget()) // has lift reached new position?  if so
+					{
+						SetLiftMotor(0.0);// stop lift motor
+						SetForkTarget(gearToothCounter->Get() + FORK_OFFSET);// calculate new fork position - slightly wider
+						SetForkMotor(FORK_MOTOR_OUT_SPEED);// start fork motor
+						closedSS = releasing_open_forks; // set closedSS to releasing_open_forks
+					}
 					break;
-
 				case releasing_open_forks:
-					// Have fork motors reached new position? If so,
-						// 1) Stop fork motors,
-						// 2) set releasedSS to released_idle,
-						// 3) set robotState to released.
+					if (CheckForkHasReachedTarget()) // has fork motors reached new position?  if so,
+					{
+						SetForkMotor(0.0);// stop fork motor
+						releasedSS = released_idle;// set releasedSS to released_idle
+						robotState = released;// set robotState to released
+					}
 					break;
 				}
 				break;
-		case closed_C_Pos_three:
+		case closed_C_Pos_Three:
 			switch (closedSS)
 			{
 				case closed_idle:
 					// Check for alternate closed button press...if pressed,
 						// 1) calculate new (lower) lift position based on which button is pressed,
-						// 2) start lift motor moving to new position,
-						// 3) set closedSS to closed_changing_level.
-					// Check for release button press...if pressed,
-						// 1) calculate new lift position (slightly lower),
-						// 2) start lift motor,
-						// 3) set closedSS to releasing_lowering.
+					if (IsCarryButtonOnePressed())
+					{
+						SetLiftTarget(POS_ONE);
+						SetLiftMotor(LIFT_MOTOR_DOWN_SPEED); // 2) start lift motor moving to new position,
+					}else if (IsCarryButtonTwoPressed())
+					{
+						SetLiftTarget(POS_TWO);
+						SetLiftMotor(LIFT_MOTOR_DOWN_SPEED); // 2) start lift motor moving to new position,
+					}else if (IsCarryButtonStepPressed())
+					{
+						SetLiftTarget(POS_STEP);
+						SetLiftMotor(LIFT_MOTOR_DOWN_SPEED); // 2) start lift motor moving to new position,
+					}
+					closedSS = closed_changing_level;	// 3) set closedSS to closed_changing_level.
+					if (IsReleaseButtonPressed()) // Check for release button press...if pressed,
+					{
+						SetLiftTarget(liftEncoder->Get() - LIFT_OFFSET); // 1) calculate new lift position (slightly lower),
+						SetLiftMotor(LIFT_MOTOR_DOWN_SPEED); // 2) start lift motor,
+						closedSS = releasing_lowering; // 3) set closedSS to releasing_lowering.
+					}
 					break;
 
 				case closed_changing_level:
-					// Has lift reached new position?  If so,
-						// 1) Stop lift motor,
-						// turn off closed_C_Pos_Three LED
-						// Turn on closed_C_Pos_Two,  closed_C_Pos_One, or closed_C_Pos_Step LED as appropriate
-						// 2) change closedSS to closed_idle,
-						// 3) change robotState to closed_C_Pos_One,  closed_C_Pos_Two, or closed_C_Pos_Step, as appropriate.
+					if(CheckLiftHasReachedTarget()) // Has lift reached new position?  If so,
+					{
+						SetLiftMotor(0.0);// 1) Stop lift motor,
+						// turn off closed_C_Pos_Two LED
+						// Turn on closed_C_Pos_One, closed_C_Pos_Three, or closed_C_Pos_Step LED as appropriate
+						closedSS = closed_idle;// 2) change closedSS to closed_idle,
+						switch(targetLiftEncoderCount) // 3) change robotState to closed_C_Pos_One,  closed_C_Pos_Two, or closed_C_Pos_Step, as appropriate.
+						{
+							case POS_ONE:
+								robotState = closed_C_Pos_One;
+								break;
+
+							case POS_TWO:
+								robotState = closed_C_Pos_Two;
+								break;
+
+							case POS_STEP:
+								robotState = closed_C_Pos_Step;
+								break;
+						}
 					break;
 
 				case releasing_lowering:
-					// Has lift reached new position? If so,
-						// 1) Stop lift motor,
-						// 2) calculate new fork position - slightly wider,
-						// 3) start fork motor,
-						// 4) set closedSS to releasing_open_forks.
+					if (CheckLiftHasReachedTarget()) // has lift reached new position?  if so
+					{
+						SetLiftMotor(0.0);// stop lift motor
+						SetForkTarget(gearToothCounter->Get() + FORK_OFFSET);// calculate new fork position - slightly wider
+						SetForkMotor(FORK_MOTOR_OUT_SPEED);// start fork motor
+						closedSS = releasing_open_forks; // set closedSS to releasing_open_forks
+					}
 					break;
-
 				case releasing_open_forks:
-					// Have fork motors reached new position? If so,
-						// 1) Stop fork motors,
-						// 2) set releasedSS to released_idle,
-						// 3) set robotState to released.
+					if (CheckForkHasReachedTarget()) // has fork motors reached new position?  if so,
+					{
+						SetForkMotor(0.0);// stop fork motor
+						releasedSS = released_idle;// set releasedSS to released_idle
+						robotState = released;// set robotState to released
+					}
 					break;
 				}
 		break;
@@ -421,36 +558,68 @@ void LiftSystem::Update()
 			case closed_idle:
 				// Check for alternate closed button press...if pressed,
 					// 1) calculate new lift position based on which button is pressed,
-					// 2) start lift motor moving to new position,
-					// 3) set closedSS to closed_changing_level.
-				// Check for release button press...if pressed,
-					// 1) calculate new lift position (slightly lower),
-					// 2) start lift motor,
-					// 3) set closedSS to releasing_lowering.
+				if (IsCarryButtonOnePressed())
+				{
+					SetLiftTarget(POS_ONE);
+					SetLiftMotor(LIFT_MOTOR_DOWN_SPEED);
+				}else if (IsCarryButtonTwoPressed())
+				{
+					SetLiftTarget(POS_TWO);
+					SetLiftMotor(LIFT_MOTOR_UP_SPEED);
+				}else  if (IsCarryButtonThreePressed())
+				{
+					SetLiftTarget(POS_THREE);
+					SetLiftMotor(LIFT_MOTOR_UP_SPEED);
+				}
+				closedSS = closed_changing_level;	// 3) set closedSS to closed_changing_level.
+				if (IsReleaseButtonPressed()) // Check for release button press...if pressed,
+				{
+					SetLiftTarget(liftEncoder->Get() - LIFT_OFFSET); // 1) calculate new lift position (slightly lower),
+					SetLiftMotor(LIFT_MOTOR_DOWN_SPEED); // 2) start lift motor,
+					closedSS = releasing_lowering; // 3) set closedSS to releasing_lowering.
+				}
 				break;
 
 			case closed_changing_level:
-				// Has lift reached new position?  If so,
-					// 1) Stop lift motor,
+				if(CheckLiftHasReachedTarget())// Has lift reached new position?  If so,
+				{
+					SetLiftMotor(0.0);// 1) Stop lift motor,
 					// turn off closed_C_Pos_Step LED
 					// Turn on closed_C_Pos_Two,  closed_C_Pos_Three, or closed_C_Pos_One LED as appropriate
-					// 2) change closedSS to closed_idle,
-					// 3) change robotState to closed_C_Pos_One,  closed_C_Pos_Two, or closed_C_Pos_Three, as appropriate.
+					closedSS = closed_idle;// 2) change closedSS to closed_idle,
+					switch(targetLiftEncoderCount) // 3) change robotState to closed_C_Pos_One,  closed_C_Pos_Two, or closed_C_Pos_Three, as appropriate.
+					{
+						case POS_ONE:
+							robotState = closed_C_Pos_One;
+							break;
+
+						case POS_TWO:
+							robotState = closed_C_Pos_Two;
+							break;
+
+						case POS_THREE:
+							robotState = closed_C_Pos_Three;
+							break;
+					}
+				}
 				break;
 
 			case releasing_lowering:
-				// Has lift reached new position? If so,
-					// 1) Stop lift motor,
-					// 2) calculate new fork position - slightly wider,
-					// 3) start fork motor,
-					// 4) set closedSS to releasing_open_forks.
+				if (CheckLiftHasReachedTarget()) // has lift reached new position?  if so
+				{
+					SetLiftMotor(0.0);// stop lift motor
+					SetForkTarget(gearToothCounter->Get() + FORK_OFFSET);// calculate new fork position - slightly wider
+					SetForkMotor(FORK_MOTOR_OUT_SPEED);// start fork motor
+					closedSS = releasing_open_forks; // set closedSS to releasing_open_forks
+				}
 				break;
-
 			case releasing_open_forks:
-				// Have fork motors reached new position? If so,
-					// 1) Stop fork motors,
-					// 2) set releasedSS to released_idle,
-					// 3) set robotState to released.
+				if (CheckForkHasReachedTarget()) // has fork motors reached new position?  if so,
+				{
+					SetForkMotor(0.0);// stop fork motor
+					releasedSS = released_idle;// set releasedSS to released_idle
+					robotState = released;// set robotState to released
+				}
 				break;
 			}
 			break;
@@ -458,11 +627,21 @@ void LiftSystem::Update()
 			switch (releasedSS)
 			{
 			case released_idle:
-				// check for two "open" buttons.  if pressed
+				if(IsReleaseWideButtonPressed()) // check for two "open" buttons.  if pressed
+				{
+
 					// calculate new fork position based on which button was pressed
-				    // calculate new lift position based on which button was pressed
+				}else if(IsReleaseNarrowButtonPressed())
+				{
+					// calculate new fork position based on which button was pressed
+				}
+
+				if (IsReleaseWideButtonPressed()||IsReleaseNarrowButtonPressed())
+				{
+					// calculate new lift position based on which button was pressed
 					// start lift and fork motors
 					// set done flag to 0
+				}
 
 				break;
 			case moving_to_open:

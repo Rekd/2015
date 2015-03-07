@@ -57,12 +57,14 @@ private:
 	Encoder     *liftEncoder;
 	Counter     *gearToothCounter;
 	DigitalInput *forkLimitSwitchMin, *forkLimitSwitchMax, *liftLimitSwitchMin, *liftLimitSwitchMax;
-	Joystick    *OperatorBox;
+	Joystick    *operatorBox;
 
 // state variables
 	RobotState  robotState;
 	OpenedNarrowSubState  openedNarrowSubState;
 	OpenedWideSubState openedWideSubState;
+	ClosedSubState closedSS;
+	ReleasedSubState releasedSS;
 
 
 // other local values
@@ -80,9 +82,18 @@ private:
 	void SetForkTarget(int target);
 	void SetLiftTarget(float target);
 	bool CheckForkHasReachedTarget();
+	bool CheckLiftHasReachedTarget();
 	void ResetGearCounter();
 	bool IsOpenWideButtonPressed();
+	bool IsOpenNarrowButtonPressed();
+	bool IsReleaseButtonPressed();
 	bool IsCloseButtonPressed();
+	bool IsCarryButtonOnePressed();
+	bool IsCarryButtonTwoPressed();
+	bool IsCarryButtonThreePressed();
+	bool IsCarryButtonStepPressed();
+	bool IsReleaseWideButtonPressed();
+	bool IsReleaseNarrowButtonPressed();
 };
 
 #endif /* LIFTSYSTEM_H_ */
