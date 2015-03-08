@@ -1,106 +1,122 @@
 #include "WPILib.h"
-//#include "CANTalon.h"
+#include "Robot.h"
 
 class Robot: public IterativeRobot
 {
 private:
-	typedef enum{closing,
-		opening} ForkState;
+#if BUILD_VERSION == COMPETITION
+	CANTalon *liftMotor;
+#else
+	CANJaguar *liftMotor;
+#endif
 
-	CANTalon *forkMotor;
-	Counter *gearToothCounter;
-	AnalogTrigger *toothTrigger;
-	DigitalInput *forkLimitSwitchMin;
-	DigitalInput *forkLimitSwitchMax;
+	Encoder *liftEncoder;
+	DigitalInput *liftLimitSwitchMin;
+	DigitalInput *liftLimitSwitchMax;
 	Joystick *joystick;
 
-	ForkState forkState;
+	bool initialZeroing; //initial zeroing but not yet zeroed
+	double liftEncoderDistPerPulse = 1.0/LIFT_ENCODER_RESOLUTION;
 
-	bool runningZero, zeroed;
-
-
-	bool GetForkLimitSwitchMin()
+	bool GetLiftLimitSwitchMin()
 	{
-		return forkLimitSwitchMin->Get();
+		//invert so that TRUE when limit switch is closed and FALSE when limit switch is open
+		return !(liftLimitSwitchMin->Get());
 	}
 
-	bool GetForkLimitSwitchMax()
+	bool GetLiftLimitSwitchMax()
 	{
-		return forkLimitSwitchMax->Get();
+		//invert so that TRUE when limit switch is closed and FALSE when limit switch is open
+		return !(liftLimitSwitchMax->Get());
 	}
 
-	void SetForkMotor(float val)
+	void SetLiftMotor(float val)
 	{
-		forkMotor->Set(val);
+		liftMotor->Set(LIFT_MOTOR_DIR*val);
 	}
 
 	void AutonomousInit()
 	{
-
+		//not used
 	}
 
 	void AutonomousPeriodic()
 	{
-
+		//not used
 	}
 
 	void RobotInit()
 	{
-
+		//not used
 	}
 
 	void TeleopInit()
 	{
-		forkState = closing;
-		joystick = new Joystick(0);
-		toothTrigger = new AnalogTrigger(3);
-		toothTrigger->SetLimitsRaw(450, 2400);
-		gearToothCounter = new Counter(toothTrigger);
-		forkMotor = new CANTalon(13);
-		forkLimitSwitchMin = new DigitalInput(0);
-		forkLimitSwitchMax = new DigitalInput(1);
-		SetForkMotor(0.25f);
-		runningZero = true;
-		zeroed = false;
+		joystick = new Joystick(CHAN_JS);
+		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_LEFT_A, CHAN_LIFT_ENCODER_LEFT_B, false, Encoder::EncodingType::k4X);
+		liftEncoder->SetDistancePerPulse(liftEncoderDistPerPulse);
+
+#if BUILD_VERSION == COMPETITION
+		liftMotor = new CANTalon(CHAN_LIFT_MOTOR);
+#else
+		liftMotor = new CANJaguar(CHAN_LIFT_MOTOR);
+#endif
+		liftLimitSwitchMin = new DigitalInput(CHAN_LIFT_LOW_LS);
+		liftLimitSwitchMax = new DigitalInput(CHAN_LIFT_HIGH_LS);
+		SetLiftMotor(-MOTOR_SPEED_GO); //move towards the bottom
+		initialZeroing = true;
 	}
 
 
 	void TeleopPeriodic()
 	{
-		char myString [64];
+		char myString [STAT_STR_LEN];
 
-		if (runningZero)  // moving to the inner limit
+		if (initialZeroing)  // moving to the inner limit
 		{
-			sprintf(myString, "moving to 0\n");
-			SmartDashboard::PutString("DB/String 1", myString);
-			if (!GetForkLimitSwitchMin())
+			sprintf(myString, "initZero ip\n"); //in progress
+			SmartDashboard::PutString("DB/String 0", myString);
+			if (GetLiftLimitSwitchMin())
 			{
-				SetForkMotor(0.0f);
-				gearToothCounter->Reset();
-				zeroed=true;
-				runningZero = false;
+				SetLiftMotor(MOTOR_SPEED_STOP);
+				liftEncoder->Reset();
+				initialZeroing = false;
+				sprintf(myString, "initZero comp\n"); //complete
+				SmartDashboard::PutString("DB/String 0", myString);
 			}
 		}
-		else
+		else  //manual control
 		{
-			sprintf(myString, "joystick %d\n", joystick->GetRawButton(1));
-			SmartDashboard::PutString("DB/String 1", myString);
-			if (joystick->GetRawButton(1))  // button pressed...run motor
-				SetForkMotor(-0.25f);
-			else  // button not pressed
-				SetForkMotor(0.0f);
+			//motor control
+			if (joystick->GetRawButton(BUT_JS_UP) && !GetLiftLimitSwitchMax())  // move to the top
+				SetLiftMotor(MOTOR_SPEED_GO);
+			else if(joystick->GetRawButton(BUT_JS_DOWN) && !GetLiftLimitSwitchMin())  // move to the bottom
+				SetLiftMotor(-MOTOR_SPEED_GO);
+			else
+				SetLiftMotor(MOTOR_SPEED_STOP); //stop
+
+			//counter control
+			if (joystick->GetRawButton(BUT_JS_RES_EN))  // reset the encoder
+				liftEncoder->Reset();
+
 		}
-		sprintf(myString, "curr: %f\n", forkMotor->GetOutputCurrent());
+
+		//status
+		sprintf(myString, "jsUp %d\n", joystick->GetRawButton(BUT_JS_UP));
+		SmartDashboard::PutString("DB/String 1", myString);
+		sprintf(myString, "jsDown %d\n", joystick->GetRawButton(BUT_JS_DOWN));
 		SmartDashboard::PutString("DB/String 2", myString);
-		sprintf(myString, "gear count: %d\n", gearToothCounter->Get());
+		sprintf(myString, "jsResEnc %d\n", joystick->GetRawButton(BUT_JS_RES_EN));
 		SmartDashboard::PutString("DB/String 3", myString);
-		sprintf(myString, "State: %d\n", forkState);
+		sprintf(myString, "curr: %f\n", liftMotor->GetOutputCurrent());
 		SmartDashboard::PutString("DB/String 4", myString);
+		sprintf(myString, "enc dist: %d\n", liftEncoder->GetDistance()); //encoder distance
+		SmartDashboard::PutString("DB/String 5", myString);
 	}
 
 	void TestPeriodic()
 	{
-
+		//not used
 	}
 };
 
