@@ -1,5 +1,5 @@
 #include "WPILib.h"
-//#include "CANTalon.h"
+#include "Robot.h"
 
 class Robot: public IterativeRobot
 {
@@ -7,7 +7,12 @@ private:
 	typedef enum{closing,
 		opening} ForkState;
 
+#if BUILD_VERSION == COMPETITION
 	CANTalon *forkMotor;
+#else
+	CANJaguar *forkMotor;
+#endif
+
 	Counter *gearToothCounter;
 	AnalogTrigger *toothTrigger;
 	DigitalInput *forkLimitSwitchMin;
@@ -17,16 +22,19 @@ private:
 
 	bool running;
 	float  motorSpeed;
+	float  maxCurr = 0.0;
 
 
 	bool GetForkLimitSwitchMin()
 	{
-		return forkLimitSwitchMin->Get();
+		//invert so that TRUE when limit switch is closed and FALSE when limit switch is open
+		return !(forkLimitSwitchMin->Get());
 	}
 
 	bool GetForkLimitSwitchMax()
 	{
-		return forkLimitSwitchMax->Get();
+		//invert so that TRUE when limit switch is closed and FALSE when limit switch is open
+		return !(forkLimitSwitchMax->Get());
 	}
 
 	void SetForkMotor(float val)
@@ -56,7 +64,11 @@ private:
 		toothTrigger = new AnalogTrigger(3);
 		toothTrigger->SetLimitsRaw(450, 2400);
 		gearToothCounter = new Counter(toothTrigger);
+#if BUILD_VERSION == COMPETITION
 		forkMotor = new CANTalon(13);
+#else
+		forkMotor = new CANJaguar(13);
+#endif
 		forkLimitSwitchMin = new DigitalInput(0);
 		forkLimitSwitchMax = new DigitalInput(1);
 		motorSpeed = 0.1;
@@ -76,7 +88,7 @@ private:
 					SetForkMotor(motorSpeed);
 					if (motorSpeed < 0.6)
 						motorSpeed = motorSpeed+0.1;
-					if (!GetForkLimitSwitchMin())
+					if (GetForkLimitSwitchMin())
 					{
 						SetForkMotor(0.0f);
 						motorSpeed = -0.05;
@@ -91,7 +103,7 @@ private:
 					SetForkMotor(motorSpeed);
 					if (motorSpeed>-0.6)
 						motorSpeed=motorSpeed-0.1;
-					if (!GetForkLimitSwitchMax())
+					if (GetForkLimitSwitchMax())
 					{
 						SetForkMotor(0.0f);
 						motorSpeed=0.1;
@@ -103,8 +115,16 @@ private:
 					break;
 			}
 		}
-		if (forkMotor->GetOutputCurrent() > 7.0f)
+		float curr = forkMotor->GetOutputCurrent();
+		if (curr > maxCurr)
+			maxCurr = curr;
+		sprintf(myString, "max curr = %f\n", maxCurr);
+		SmartDashboard::PutString("DB/String 6", myString);
+
+		if (curr > 24.0f)
 		{
+			sprintf(myString, "kill motor\n");
+			SmartDashboard::PutString("DB/String 6", myString);
 			SetForkMotor(0.0f);
 			running = false;
 		}
@@ -117,6 +137,8 @@ private:
 		SmartDashboard::PutString("DB/String 3", myString);
 		sprintf(myString, "running: %d\n", running);
 		SmartDashboard::PutString("DB/String 4", myString);
+		sprintf(myString, "motorSpeed: %f\n", motorSpeed);
+		SmartDashboard::PutString("DB/String 5", myString);
 	}
 
 	void TestPeriodic()

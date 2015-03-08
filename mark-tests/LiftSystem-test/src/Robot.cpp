@@ -1,13 +1,20 @@
 #include "WPILib.h"
 #include "Constants.h"
 #include "LiftSystem.h"
+#include "robot.h"
 
 class Robot: public IterativeRobot
 {
 private:
 
 	LiftSystem  *robotLiftSystem;
-	CANTalon    *forkMotor, *liftMotor;
+#if BUILD_VERSION == COMPETITION
+	CANTalon * forkMotor;
+	CANTalon * liftMotor;
+#else
+	CANJaguar * forkMotor;
+	CANJaguar * liftMotor;
+#endif
 	Encoder     *liftEnc;
 	Counter     *gearToothCounter;
 	AnalogTrigger *toothTrigger;
@@ -22,8 +29,15 @@ private:
 		toothTrigger = new AnalogTrigger(ACHAN_GEAR_COUNT);
 		toothTrigger->SetLimitsRaw(450, 2400);
 		gearToothCounter = new Counter(toothTrigger);
+
+#if BUILD_VERSION == COMPETITION
 		forkMotor = new CANTalon(FORK_MOTOR_ID);
 		liftMotor = new CANTalon(LIFT_MOTOR_ID);
+#else
+		forkMotor = new CANJaguar(FORK_MOTOR_ID);
+		liftMotor = new CANJaguar(LIFT_MOTOR_ID);
+#endif
+
 // add later		liftEnc = new Encoder(CHAN_ENCODER_LIFT);
 		forkLimitMin = new DigitalInput(CHAN_FORK_LIMIT_MIN);
 		forkLimitMax = new DigitalInput(CHAN_FORK_LIMIT_MAX);

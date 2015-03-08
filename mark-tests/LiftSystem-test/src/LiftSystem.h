@@ -13,7 +13,7 @@
 
 class LiftSystem {
 public:
-	LiftSystem(CANTalon *pforkMotor, CANTalon *pliftMotor, Counter *gearToothCounter, Encoder *liftEnc,
+	LiftSystem(CANSpeedController *pforkMotor, CANSpeedController *pliftMotor, Counter *gearToothCounter, Encoder *liftEnc,
 			DigitalInput *forkLimitMin, DigitalInput *forkLimitMax, DigitalInput *liftLimitMin,
 			DigitalInput *liftLimitMax, Joystick *pjoystick);
 
@@ -53,16 +53,20 @@ private:
 			moving_to_open} ReleasedSubState;
 
 // local motors, encoders, and switches
-	CANTalon    *forkMotor, *liftMotor;
+
+	CANSpeedController	*forkMotor, *liftMotor;
+
 	Encoder     *liftEncoder;
 	Counter     *gearToothCounter;
 	DigitalInput *forkLimitSwitchMin, *forkLimitSwitchMax, *liftLimitSwitchMin, *liftLimitSwitchMax;
-	Joystick    *joystick;
+	Joystick    *operatorBox;
 
 // state variables
 	RobotState  robotState;
 	OpenedNarrowSubState  openedNarrowSubState;
 	OpenedWideSubState openedWideSubState;
+	ClosedSubState closedSS;
+	ReleasedSubState releasedSS;
 
 
 // other local values
@@ -80,9 +84,18 @@ private:
 	void SetForkTarget(int target);
 	void SetLiftTarget(float target);
 	bool CheckForkHasReachedTarget();
+	bool CheckLiftHasReachedTarget();
 	void ResetGearCounter();
 	bool IsOpenWideButtonPressed();
+	bool IsOpenNarrowButtonPressed();
+	bool IsReleaseButtonPressed();
 	bool IsCloseButtonPressed();
+	bool IsCarryButtonOnePressed();
+	bool IsCarryButtonTwoPressed();
+	bool IsCarryButtonThreePressed();
+	bool IsCarryButtonStepPressed();
+	bool IsReleaseWideButtonPressed();
+	bool IsReleaseNarrowButtonPressed();
 };
 
 #endif /* LIFTSYSTEM_H_ */
