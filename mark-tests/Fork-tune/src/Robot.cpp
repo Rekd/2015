@@ -18,7 +18,6 @@ private:
 
 	bool initialZeroing; //initial zeroing but not yet zeroed
 
-
 	bool GetForkLimitSwitchMin()
 	{
 		//invert so that TRUE when limit switch is closed and FALSE when limit switch is open
@@ -33,7 +32,7 @@ private:
 
 	void SetForkMotor(float val)
 	{
-		forkMotor->Set(val);
+		forkMotor->Set(LIFT_MOTOR_DIR*val);
 	}
 
 	void AutonomousInit()
@@ -53,25 +52,26 @@ private:
 
 	void TeleopInit()
 	{
-		joystick = new Joystick(0);
-		toothTrigger = new AnalogTrigger(3);
-		toothTrigger->SetLimitsRaw(450, 2400);
+		joystick = new Joystick(CHAN_JS);
+		toothTrigger = new AnalogTrigger(CHAN_GTC);
+		toothTrigger->SetLimitsRaw(ANALOG_TRIG_MIN, ANALOG_TRIG_MAX);
 		gearToothCounter = new Counter(toothTrigger);
+
 #if BUILD_VERSION == COMPETITION
-		forkMotor = new CANTalon(13);
+		forkMotor = new CANTalon(CHAN_FORK_MOTOR);
 #else
-		forkMotor = new CANJaguar(13);
+		forkMotor = new CANJaguar(CHAN_FORK_MOTOR);
 #endif
-		forkLimitSwitchMin = new DigitalInput(0);
-		forkLimitSwitchMax = new DigitalInput(1);
-		SetForkMotor(0.25f); //move in the direction of the inner limit
+		forkLimitSwitchMin = new DigitalInput(CHAN_FORK_MIN_LS);
+		forkLimitSwitchMax = new DigitalInput(CHAN_FORK_MAX_LS);
+		SetForkMotor(-MOTOR_SPEED_GO); //move towards the bottom
 		initialZeroing = true;
 	}
 
 
 	void TeleopPeriodic()
 	{
-		char myString [64];
+		char myString [STAT_STR_LEN];
 
 		if (initialZeroing)  // moving to the inner limit
 		{
@@ -79,7 +79,7 @@ private:
 			SmartDashboard::PutString("DB/String 0", myString);
 			if (GetForkLimitSwitchMin())
 			{
-				SetForkMotor(0.0f);
+				SetForkMotor(MOTOR_SPEED_STOP);
 				gearToothCounter->Reset();
 				initialZeroing = false;
 				sprintf(myString, "initZero comp\n"); //complete
@@ -89,35 +89,35 @@ private:
 		else  //manual control
 		{
 			//motor control
-			if (joystick->GetRawButton(1) && !GetForkLimitSwitchMax())  // moving to the outer limit
-				SetForkMotor(-0.25f);
-			else if(joystick->GetRawButton(2) && !GetForkLimitSwitchMin())  // moving to the inner limit
-				SetForkMotor(0.25f);
+			if (joystick->GetRawButton(BUT_JS_OUT) && !GetForkLimitSwitchMax())  // move outwards
+				SetForkMotor(MOTOR_SPEED_GO);
+			else if(joystick->GetRawButton(BUT_JS_IN) && !GetForkLimitSwitchMin())  // move inwards
+				SetForkMotor(-MOTOR_SPEED_GO);
 			else
-				SetForkMotor(0.0f); //stop
+				SetForkMotor(MOTOR_SPEED_STOP); //stop
 
 			//counter control
-			if (joystick->GetRawButton(3))  // reset the gear tooth counter
+			if (joystick->GetRawButton(BUT_JS_RES_GTC))  // reset the gear tooth counter
 				gearToothCounter->Reset();
 
 		}
 
 		//status
-		sprintf(myString, "joystickB1 %d\n", joystick->GetRawButton(1));
+		sprintf(myString, "jsOut %d\n", joystick->GetRawButton(BUT_JS_OUT));
 		SmartDashboard::PutString("DB/String 1", myString);
-		sprintf(myString, "joystickB2 %d\n", joystick->GetRawButton(2));
+		sprintf(myString, "jsIn %d\n", joystick->GetRawButton(BUT_JS_IN));
 		SmartDashboard::PutString("DB/String 2", myString);
-		sprintf(myString, "joystickB3 %d\n", joystick->GetRawButton(3));
+		sprintf(myString, "jsResGtc %d\n", joystick->GetRawButton(BUT_JS_RES_GTC));
 		SmartDashboard::PutString("DB/String 3", myString);
 		sprintf(myString, "curr: %f\n", forkMotor->GetOutputCurrent());
 		SmartDashboard::PutString("DB/String 4", myString);
-		sprintf(myString, "gear count: %d\n", gearToothCounter->Get());
+		sprintf(myString, "gtc #: %d\n", gearToothCounter->Get()); //gtc count
 		SmartDashboard::PutString("DB/String 5", myString);
 	}
 
 	void TestPeriodic()
 	{
-
+		//not used
 	}
 };
 
