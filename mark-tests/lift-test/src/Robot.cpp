@@ -1,67 +1,81 @@
 #include "WPILib.h"
-//#include "CANTalon.h"
+#include "Robot.h"
 
 class Robot: public IterativeRobot
 {
 private:
-	typedef enum{closing,
-		opening} ForkState;
+	typedef enum{lowering,
+		raising} LiftState;
 
-	CANTalon *forkMotor;
-	Counter *gearToothCounter;
-	AnalogTrigger *toothTrigger;
-	DigitalInput *forkLimitSwitchMin;
-	DigitalInput *forkLimitSwitchMax;
+#if BUILD_VERSION == COMPETITION
+	CANTalon *liftMotor;
+#else
+	CANJaguar *liftMotor;
+#endif
 
-	ForkState forkState;
+	Encoder *liftEncoder;
+	double liftEncoderDistPerPulse = 1.0/LIFT_ENCODER_RESOLUTION;
+
+	DigitalInput *liftLimitSwitchMin; //at the bottom of the lift
+	DigitalInput *liftLimitSwitchMax; //at the top of the lift
+
+	LiftState liftState;
 
 	bool running;
 	float  motorSpeed;
+	bool liftEncZeroed = false; //zero is at the bottom of the lift
+	double maxLiftEncDist = -1; //encoder distance at the top
 
 
-	bool GetForkLimitSwitchMin()
+	bool GetLiftLimitSwitchMin()
 	{
-		return forkLimitSwitchMin->Get();
+		//invert so that TRUE when limit switch is closed and FALSE when limit switch is open
+		return !(liftLimitSwitchMin->Get());
 	}
 
-	bool GetForkLimitSwitchMax()
+	bool GetLiftLimitSwitchMax()
 	{
-		return forkLimitSwitchMax->Get();
+		//invert so that TRUE when limit switch is closed and FALSE when limit switch is open
+		return !(liftLimitSwitchMax->Get());
 	}
 
-	void SetForkMotor(float val)
+	void SetLiftMotor(float val)
 	{
-		forkMotor->Set(val);
+		liftMotor->Set(val);
 	}
 
 	void AutonomousInit()
 	{
-
+		//not used
 	}
 
 	void AutonomousPeriodic()
 	{
-
+		//not used
 	}
 
 	void RobotInit()
 	{
-
+		//not used
 	}
 
 	void TeleopInit()
 	{
-		forkState = closing;
+		liftState = lowering;
 
-		toothTrigger = new AnalogTrigger(3);
-		toothTrigger->SetLimitsRaw(450, 2400);
-		gearToothCounter = new Counter(toothTrigger);
-		forkMotor = new CANTalon(13);
-		forkLimitSwitchMin = new DigitalInput(0);
-		forkLimitSwitchMax = new DigitalInput(1);
-		motorSpeed = 0.1;
+		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_LEFT_A, CHAN_LIFT_ENCODER_LEFT_B, false, Encoder::EncodingType::k4X);
+		liftEncoder->SetDistancePerPulse(liftEncoderDistPerPulse);
+
+
+#if BUILD_VERSION == COMPETITION
+		liftMotor = new CANTalon(13);
+#else
+		liftMotor = new CANJaguar(13);
+#endif
+		liftLimitSwitchMin = new DigitalInput(CHAN_LIFT_LOW_LS);
+		liftLimitSwitchMax = new DigitalInput(CHAN_LIFT_HIGH_LS);
+		motorSpeed = -0.4;  //start by lowering the lift
 		running = true;
-
 	}
 
 	void TeleopPeriodic()
@@ -70,53 +84,56 @@ private:
 
 		if (running)
 		{
-			switch (forkState)
+			switch (liftState)
 			{
-				case closing:
-					SetForkMotor(motorSpeed);
-					if (motorSpeed < 0.6)
-						motorSpeed = motorSpeed+0.1;
-					if (!GetForkLimitSwitchMin())
+				case raising:
+					SetLiftMotor(motorSpeed);
+
+					if (GetLiftLimitSwitchMax())
 					{
-						SetForkMotor(0.0f);
-						motorSpeed = -0.05;
-						sprintf(myString, "max count: %d\n", gearToothCounter->Get());
-						SmartDashboard::PutString("DB/String 5", myString);
-						gearToothCounter->Reset();
-						forkState = opening;
+						SetLiftMotor(0.0f);
+						if(maxLiftEncDist == -1)
+						{
+							maxLiftEncDist = liftEncoder->GetDistance();
+						}
+						motorSpeed = -0.4;
+						liftState = lowering;
 					}
 					break;
 
-				case opening:
-					SetForkMotor(motorSpeed);
-					if (motorSpeed>-0.6)
-						motorSpeed=motorSpeed-0.1;
-					if (!GetForkLimitSwitchMax())
+				case lowering:
+					SetLiftMotor(motorSpeed);
+
+					if (GetLiftLimitSwitchMin())
 					{
-						SetForkMotor(0.0f);
-						motorSpeed=0.1;
-						sprintf(myString, "max count: %d\n", gearToothCounter->Get());
-						SmartDashboard::PutString("DB/String 5", myString);
-						gearToothCounter->Reset();
-						forkState = closing;
+
+						SetLiftMotor(0.0f);
+						if(!liftEncZeroed)
+						{
+							liftEncoder->Reset();
+							liftEncZeroed = true;
+						}
+						motorSpeed=0.4;
+						liftState = raising;
 					}
 					break;
 			}
 		}
-		if (forkMotor->GetOutputCurrent() > 7.0f)
-		{
-			SetForkMotor(0.0f);
-			running = false;
-		}
 
-		sprintf(myString, "curr: %f\n", forkMotor->GetOutputCurrent());
-		SmartDashboard::PutString("DB/String 1", myString);
-		sprintf(myString, "gear count: %d\n", gearToothCounter->Get());
-		SmartDashboard::PutString("DB/String 2", myString);
-		sprintf(myString, "State: %d\n", forkState);
-		SmartDashboard::PutString("DB/String 3", myString);
+		//status
 		sprintf(myString, "running: %d\n", running);
+		SmartDashboard::PutString("DB/String 0", myString);
+		sprintf(myString, "State: %d\n", liftState);
+		SmartDashboard::PutString("DB/String 1", myString);
+		sprintf(myString, "motorSpeed: %f\n", motorSpeed);
+		SmartDashboard::PutString("DB/String 2", myString);
+		sprintf(myString, "lift encoder zeroed: %d\n", liftEncZeroed);
+		SmartDashboard::PutString("DB/String 3", myString);
+		sprintf(myString, "maxLiftEncDist: %f\n", maxLiftEncDist);
 		SmartDashboard::PutString("DB/String 4", myString);
+		sprintf(myString, "encoder distance: %f\n", liftEncoder->GetDistance());
+		SmartDashboard::PutString("DB/String 5", myString);
+
 	}
 
 	void TestPeriodic()
