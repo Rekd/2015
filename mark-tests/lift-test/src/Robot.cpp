@@ -24,13 +24,13 @@ private:
 
 	LiftState liftState;
 	bool running = false;
-	float  motorSpeed = 0.0f;
+	float  motorSpeed = MOTOR_SPEED_STOP;
 	bool enterHoldCommand = false; //command from the joystick to enter into holding position state
 	bool exitHoldCommand = true; //command from the joystick to exit the holding position state
 	bool liftEncZeroed = false; //zero is at the bottom of the lift
 	bool liftEncFullRanged = false; //full range is at the top of the lift
-	double maxLiftEncDist = -1; //encoder distance at the top
-	float pidPosSetPoint = -1; //set point for the PID controller
+	double maxLiftEncDist = UNINIT_VAL; //encoder distance at the top
+	float pidPosSetPoint = UNINIT_VAL; //set point for the PID controller
 
 
 	bool GetLiftLimitSwitchMin()
@@ -53,19 +53,17 @@ private:
 	float DistToSetpoint()
 	{
 		if(!(controlLift->IsEnabled()))
-				return -1;
+				return UNINIT_VAL;
 		else
 			return (liftEncoder->GetDistance() - pidPosSetPoint);
 	}
 
 	bool AtSetpoint()
 	{
-		int setTol = 25; //integer number of the distance per pulse
-
 		if(!(controlLift->IsEnabled()))
 			return false;
 		else
-			return (abs(DistToSetpoint()) < setTol*liftEncoderDistPerPulse);
+			return (abs(DistToSetpoint()) < PID_POS_TOL*liftEncoderDistPerPulse);
 	}
 
 	void AutonomousInit()
@@ -89,35 +87,35 @@ private:
 
 		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_LEFT_A, CHAN_LIFT_ENCODER_LEFT_B, false, Encoder::EncodingType::k4X);
 		liftEncoder->SetDistancePerPulse(liftEncoderDistPerPulse);
-		liftEncoder->SetMinRate(0.25);
+		liftEncoder->SetMinRate(MIN_ENCODER_RATE);
 
 		liftEncoder->SetPIDSourceParameter(liftEncoder->kDistance);
-		controlLift = new PIDController(0.5, 0.05, 0, 0, liftEncoder, liftMotor);
+		controlLift = new PIDController(PID_P, PID_I, PID_D, PID_F, liftEncoder, liftMotor);
 		controlLift->SetContinuous(true); //treat input to controller as continuous; true by default
-		controlLift->SetOutputRange(-1.0, 1.0);
+		controlLift->SetOutputRange(PID_OUT_MIN, PID_OUT_MAX);
 		controlLift->Disable(); //do not enable until in holding position mode
 
 
 #if BUILD_VERSION == COMPETITION
-		liftMotor = new CANTalon(13);
+		liftMotor = new CANTalon(CHAN_LIFT_MOTOR);
 #else
-		liftMotor = new CANJaguar(13);
+		liftMotor = new CANJaguar(CHAN_LIFT_MOTOR);
 #endif
 		liftLimitSwitchMin = new DigitalInput(CHAN_LIFT_LOW_LS);
 		liftLimitSwitchMax = new DigitalInput(CHAN_LIFT_HIGH_LS);
-		joystick = new Joystick(0);
-		motorSpeed = -0.4;  //start by lowering the lift
+		joystick = new Joystick(CHAN_JS);
+		motorSpeed = -MOTOR_SPEED_GO;  //start by lowering the lift
 		running = true;
 	}
 
 	void TeleopPeriodic()
 	{
-		char myString [64];
+		char myString [STAT_STR_LEN];
 
 		if (running)
 		{
-			enterHoldCommand = joystick->GetRawButton(1);
-			exitHoldCommand = joystick->GetRawButton(2);
+			enterHoldCommand = joystick->GetRawButton(BUT_JS_ENT_POS_HOLD);
+			exitHoldCommand = joystick->GetRawButton(BUT_JS_EXIT_POS_HOLD);
 
 			switch (liftState)
 			{
@@ -126,13 +124,13 @@ private:
 
 					if (GetLiftLimitSwitchMax())
 					{
-						SetLiftMotor(0.0f);
+						SetLiftMotor(MOTOR_SPEED_STOP);
 						if(!liftEncFullRanged)
 						{
 							maxLiftEncDist = liftEncoder->GetDistance();
 							liftEncFullRanged = true;
 						}
-						motorSpeed = -0.4;
+						motorSpeed = -MOTOR_SPEED_GO;
 						liftState = lowering;
 					}
 
@@ -149,13 +147,13 @@ private:
 					if (GetLiftLimitSwitchMin())
 					{
 
-						SetLiftMotor(0.0f);
+						SetLiftMotor(MOTOR_SPEED_STOP);
 						if(!liftEncZeroed)
 						{
 							liftEncoder->Reset();
 							liftEncZeroed = true;
 						}
-						motorSpeed=0.4;
+						motorSpeed=MOTOR_SPEED_GO;
 						liftState = raising;
 					}
 
@@ -168,7 +166,7 @@ private:
 				case holding:
 					if(!(controlLift->IsEnabled()))
 					{
-						pidPosSetPoint = maxLiftEncDist/2; //go to the midpoint of the range
+						pidPosSetPoint = SP_RANGE_FRACTION*maxLiftEncDist; //go to the midpoint of the range
 						controlLift->SetSetpoint(pidPosSetPoint);
 						controlLift->Enable();
 					}
@@ -176,7 +174,7 @@ private:
 					if(exitHoldCommand)
 					{
 						controlLift->Disable();
-						motorSpeed = -0.4;
+						motorSpeed = -MOTOR_SPEED_GO;
 						liftState = lowering;
 					}
 
