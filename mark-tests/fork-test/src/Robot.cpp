@@ -1,5 +1,5 @@
 #include "WPILib.h"
-#include "robot.h"
+#include "Robot.h"
 
 class Robot: public IterativeRobot
 {
