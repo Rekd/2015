@@ -7,18 +7,17 @@
 
 #ifndef LIFTSYSTEM_H_
 #define LIFTSYSTEM_H_
+
 #include "WPILib.h"
 #include "Constants.h"
 
-
 class LiftSystem {
 public:
-	LiftSystem(CANSpeedController *pforkMotor, CANSpeedController *pliftMotor, Counter *gearToothCounter, Encoder *liftEnc,
-			DigitalInput *forkLimitMin, DigitalInput *forkLimitMax, DigitalInput *liftLimitMin,
-			DigitalInput *liftLimitMax, Joystick *pjoystick);
-
+	LiftSystem(CANSpeedController *pForkMotor, CANSpeedController *pLiftMotor, CANSpeedController *pLeftIntake, CANSpeedController *pRightIntake,
+			Counter *pGearToothCounter, Encoder *pLiftEnc, PIDController *pLiftControl,
+			DigitalInput *pForkLimitInner, DigitalInput *pForkLimitOuter, DigitalInput *pLiftLimitLow, DigitalInput *pLiftLimitHigh,
+			Joystick *pOperatorBox);
 	virtual ~LiftSystem();
-
 	void Update();
 
 private:
@@ -29,20 +28,22 @@ private:
 		closed_C_Pos_Three,
 		closed_C_Pos_Step,
 		released,
-		lift_error,
+		halt_pickup_gantry,
 		} RobotState;
 
 	typedef enum {narrow_idle,
 		narrow_closing_fork,
+		opening_wide,
 		narrow_changing_lift,
 		narrow_error_recovery,
-		opening_wide} OpenedNarrowSubState;
+		} openedNarrowSubState;
 
 	typedef enum {wide_idle,
 		wide_closing_fork,
+		opening_narrow,
 		wide_changing_lift,
 		wide_error_recovery,
-		opening_narrow} OpenedWideSubState;
+		} openedWideSubState;
 
 	typedef enum {closed_idle,
 		closed_changing_level,
@@ -50,61 +51,59 @@ private:
 		releasing_open_forks} ClosedSubState;
 
 	typedef enum {released_idle,
+			released_lowering,
 			moving_to_open} ReleasedSubState;
 
+	typedef enum {
+		inwards = -1,
+		outwards = 1
+	} ForkDirection;
+
 // local motors, encoders, and switches
-
-	CANSpeedController	*forkMotor, *liftMotor;
-
-	Encoder     *liftEncoder;
+	CANSpeedController	*forkMotor, *liftMotor, *leftIntake, *rightIntake;
 	Counter     *gearToothCounter;
-	DigitalInput *forkLimitSwitchMin, *forkLimitSwitchMax, *liftLimitSwitchMin, *liftLimitSwitchMax;
+	Encoder     *liftEnc;
+	PIDController *liftControl;
+	DigitalInput *forkLimitInner, *forkLimitOuter, *liftLimitLow, *liftLimitHigh;
 	Joystick    *operatorBox;
 
 // state variables
 	RobotState  robotState;
-	OpenedNarrowSubState  openedNarrowSubState;
-	OpenedWideSubState openedWideSubState;
+	openedNarrowSubState  openedNarrowSS;
+	openedWideSubState openedWideSS;
 	ClosedSubState closedSS;
 	ReleasedSubState releasedSS;
 
 
-// other local values
-	int  targetForkGearCount;
-	int  targetLiftEncoderCount;
+// other private variables
+	int  targetForkGearCount; //target is an integer gear count
+	int  targetLiftEncoderCount; //target is an integer encoder count
+// fork position tracking
+	ForkDirection forkDirection;
+	float curForkSetSpeed; //the current fork speed
+	int absGearToothCount; //absolute gear tooth count (not relative)
+	int curGearToothCount; //current gear tooth count
+	int lastGearToothCount; //last gear tooth count
 
-// global fork motor count
-	bool direction;
-	int rawGearToothCount;
-	int gearToothCount;
-	int lastGearToothCount;
-	int difference;
-
-
-
-	bool GetForkLimitSwitchMin();
-	bool GetForkLimitSwitchMax();
-	bool GetLiftLimitSwitchMin();
-	bool GetLiftLimitSwitchMax();
+	//prototypes
+	bool GetForkLimitSwitchInner();
+	bool GetForkLimitSwitchOuter();
+	bool GetLiftLimitSwitchLow();
+	bool GetLiftLimitSwitchHigh();
+	void CheckAndHandleHaltPickupGantry();
 	void SetForkMotor(float val);
-	void SetLiftMotor(float val);
 	bool CheckForkMotorCurrentSpike();
-	void UpdateGearCount();
+	void UpdateGearToothCount();
 	void SetForkTarget(int target);
-	void SetLiftTarget(float target);
+	void SetLiftTarget(int target);
 	bool CheckForkHasReachedTarget();
 	bool CheckLiftHasReachedTarget();
-	void ResetGearCounter();
-	bool IsOpenWideButtonPressed();
-	bool IsOpenNarrowButtonPressed();
-	bool IsReleaseButtonPressed();
-	bool IsCloseButtonPressed();
-	bool IsCarryButtonOnePressed();
-	bool IsCarryButtonTwoPressed();
-	bool IsCarryButtonThreePressed();
-	bool IsCarryButtonStepPressed();
-	bool IsReleaseWideButtonPressed();
-	bool IsReleaseNarrowButtonPressed();
+	bool IsButtonPressed(int button);
+	void TurnLedOn(int led);
+	void TurnLedOff(int led);
+	void TurnForkLedsOff();
+	void TurnLiftLedsOff();
+
 };
 
 #endif /* LIFTSYSTEM_H_ */

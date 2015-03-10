@@ -39,28 +39,52 @@
 #define DIFFERENTIAL_TERM           0.001f
 // 1/8 for feed forward
 #define FEED_FORWARD_TERM           0.125
-#define FORK_MOTOR_IN_SPEED         0.4
-#define FORK_MOTOR_OUT_SPEED        -0.4
-#define LIFT_MOTOR_UP_SPEED         0.4
-#define LIFT_MOTOR_DOWN_SPEED        -0.4
-#define OPEN_NARROW_COUNT           100
-#define OPEN_WIDE_COUNT             365
-#define WIDE_NARROW_DIFF            265
-#define NARROW_WIDE_DIFF            -265
-#define CLOSING_COUNT               400
-#define LIFT_MOTOR_UP_SPEED         0.4  //NOT ACCURATE, RANDOM
-#define LIFT_MOTOR_DOWN_SPEED       -0.4 //NOT ACCURATE, RANDOM
-#define POS_ONE						200  //NOT ACCURATE, RANDOM
-#define POS_TWO						400  //NOT ACCURATE, RANDOM
-#define POS_THREE					800  //NOT ACCURATE, RANDOM
-#define POS_STEP					300  //NOT ACCURATE, RANDOM
-#define LIFT_OFFSET					30  //NOT ACCURATE, RANDOM
-#define FORK_OFFSET					30  //NOT ACCURATE, RANDOM
 
 #define MAX_RPS						8
 
-#define FORK_CURRENT_LIMIT  7.0f
+#define	MOTOR_STOP							0.0
+#define FORK_MOTOR_OUT_SPEED        		0.4 //out is positive
+#define FORK_MOTOR_IN_SPEED         		-0.4 //in is negative
+#define LIFT_MOTOR_UP_SPEED         		0.4 //up is positive
+#define LIFT_MOTOR_DOWN_SPEED        		-0.4 //down is negative
+#define OPEN_NARROW_COUNT           		100 //distance from the inner limit
+#define OPEN_WIDE_COUNT           			365 //distance from the inner limit
+#define CLOSE_COUNT               			50 //distance from the inner limit, this is not actually the close position which will vary, this will just get the forks to close
+#define	PICKUP_POS							50
+#define CARRY_ONE_POS						200
+#define CARRY_TWO_POS						400
+#define CARRY_THREE_POS						800
+#define CARRY_STEP_POS						300
+#define LIFT_OFFSET							30 //this is relative to the release position, not absolute
+#define FORK_OFFSET							30 //this is relative to the release position, not absolute
+#define FORK_CURRENT_LIMIT  				25.0
+#define MOTOR_REV							-1
+#define MOTOR_NOT_REV						1
+#define FORK_MOTOR_REV_STATE				MOTOR_NOT_REV
+#define LIFT_MOTOR_REV_STATE				MOTOR_NOT_REV
+#define FORK_POS_TOL						10
+#define LIFT_POS_TOL						10
 
+//operator box inputs
+#define OPEN_WIDE_BUTTON					2
+#define OPEN_NARROW_BUTTON					3
+#define INTAKE_BUTTON						4
+#define CLOSE_BUTTON						5
+#define RELEASE_BUTTON						6
+#define CARRY_ONE_BUTTON					7
+#define CARRY_TWO_BUTTON					8
+#define CARRY_THREE_BUTTON					9
+#define CARRY_STEP_BUTTON					10
 
+//operator box outputs
+#define OPEN_WIDE_LED						2
+#define OPEN_NARROW_LED						3
+#define INTAKE_LED							4
+#define CLOSE_LED							5
+#define RELEASE_LED							6
+#define CARRY_ONE_LED						7
+#define CARRY_TWO_LED						8
+#define CARRY_THREE_LED						9
+#define CARRY_STEP_LED						10
 
 #endif /* SRC_CONSTANTS_H_ */
