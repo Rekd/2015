@@ -1,18 +1,13 @@
 #include "WPILib.h"
-#include "Robot.h"
+//#include "CANTalon.h"
 
 class Robot: public IterativeRobot
 {
 private:
-	typedef enum{closing,
-		opening} ForkState;
+	typedef enum{closing, wait_open,
+		opening, wait_close} ForkState;
 
-#if BUILD_VERSION == COMPETITION
 	CANTalon *forkMotor;
-#else
-	CANJaguar *forkMotor;
-#endif
-
 	Counter *gearToothCounter;
 	AnalogTrigger *toothTrigger;
 	DigitalInput *forkLimitSwitchMin;
@@ -22,24 +17,55 @@ private:
 
 	bool running;
 	float  motorSpeed;
-	float  maxCurr = 0.0;
+
+// global fork motor count
+	bool direction;
+	int rawGearToothCount;
+	int globalGearToothCount;
+	int lastGearToothCount;
+	int difference;
 
 
 	bool GetForkLimitSwitchMin()
 	{
-		//invert so that TRUE when limit switch is closed and FALSE when limit switch is open
-		return !(forkLimitSwitchMin->Get());
+		return forkLimitSwitchMin->Get();
 	}
 
 	bool GetForkLimitSwitchMax()
 	{
-		//invert so that TRUE when limit switch is closed and FALSE when limit switch is open
-		return !(forkLimitSwitchMax->Get());
+		return forkLimitSwitchMax->Get();
 	}
 
 	void SetForkMotor(float val)
 	{
+		if (val > 0.0)
+		{
+			//out = true, in = false
+			UpdateGearCount();
+			direction = true;
+		}else if (val < 0.0)
+		{
+			UpdateGearCount();
+			direction = false;
+		}
+
 		forkMotor->Set(val);
+	}
+
+	void UpdateGearCount ()
+	{
+		rawGearToothCount = gearToothCounter->Get();
+//		difference = std::abs(lastGearToothCount-rawGearToothCount);
+//		lastGearToothCount = rawGearToothCount;
+
+		if (direction)
+		{
+			globalGearToothCount += rawGearToothCount;
+		}else
+		{
+			globalGearToothCount -= rawGearToothCount;
+		}
+		gearToothCounter->Reset();
 	}
 
 	void AutonomousInit()
@@ -64,14 +90,11 @@ private:
 		toothTrigger = new AnalogTrigger(3);
 		toothTrigger->SetLimitsRaw(450, 2400);
 		gearToothCounter = new Counter(toothTrigger);
-#if BUILD_VERSION == COMPETITION
 		forkMotor = new CANTalon(13);
-#else
-		forkMotor = new CANJaguar(13);
-#endif
 		forkLimitSwitchMin = new DigitalInput(0);
 		forkLimitSwitchMax = new DigitalInput(1);
-		motorSpeed = 0.1;
+		motorSpeed = -0.3;
+		SetForkMotor(motorSpeed);
 		running = true;
 
 	}
@@ -85,46 +108,45 @@ private:
 			switch (forkState)
 			{
 				case closing:
-					SetForkMotor(motorSpeed);
-					if (motorSpeed < 0.6)
-						motorSpeed = motorSpeed+0.1;
-					if (GetForkLimitSwitchMin())
+//					SetForkMotor(motorSpeed);
+					if (!GetForkLimitSwitchMin())
 					{
 						SetForkMotor(0.0f);
-						motorSpeed = -0.05;
+						motorSpeed = 0.3;
 						sprintf(myString, "max count: %d\n", gearToothCounter->Get());
 						SmartDashboard::PutString("DB/String 5", myString);
-						gearToothCounter->Reset();
-						forkState = opening;
+//						gearToothCounter->Reset();
+						forkState = wait_open;
 					}
+					break;
+
+				case wait_open:
+					wait(0.5);
+					SetForkMotor(motorSpeed);
+					forkState = opening;
 					break;
 
 				case opening:
-					SetForkMotor(motorSpeed);
-					if (motorSpeed>-0.6)
-						motorSpeed=motorSpeed-0.1;
-					if (GetForkLimitSwitchMax())
+//					SetForkMotor(motorSpeed);
+					if (!GetForkLimitSwitchMax())
 					{
 						SetForkMotor(0.0f);
-						motorSpeed=0.1;
+						motorSpeed=-0.3;
 						sprintf(myString, "max count: %d\n", gearToothCounter->Get());
 						SmartDashboard::PutString("DB/String 5", myString);
-						gearToothCounter->Reset();
-						forkState = closing;
+//						gearToothCounter->Reset();
+						forkState = wait_close;
 					}
+					break;
+				case wait_close:
+					wait(0.5);
+					SetForkMotor(MotorSpeed);
+					forkState = closing;
 					break;
 			}
 		}
-		float curr = forkMotor->GetOutputCurrent();
-		if (curr > maxCurr)
-			maxCurr = curr;
-		sprintf(myString, "max curr = %f\n", maxCurr);
-		SmartDashboard::PutString("DB/String 6", myString);
-
-		if (curr > 24.0f)
+		if (forkMotor->GetOutputCurrent() > 25.0f)
 		{
-			sprintf(myString, "kill motor\n");
-			SmartDashboard::PutString("DB/String 6", myString);
 			SetForkMotor(0.0f);
 			running = false;
 		}
@@ -137,8 +159,12 @@ private:
 		SmartDashboard::PutString("DB/String 3", myString);
 		sprintf(myString, "running: %d\n", running);
 		SmartDashboard::PutString("DB/String 4", myString);
-		sprintf(myString, "motorSpeed: %f\n", motorSpeed);
+		sprintf(myString, "dir: %d\n", direction);
 		SmartDashboard::PutString("DB/String 5", myString);
+		sprintf(myString, "calcGear: %d\n", gearToothCount);
+		SmartDashboard::PutString("DB/String 5", myString);
+		sprintf(myString, "G gear count: %d\n", globalGearToothCount);
+		SmartDashboard::PutString("DB/String 9", myString);
 	}
 
 	void TestPeriodic()

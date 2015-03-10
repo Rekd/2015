@@ -73,6 +73,14 @@ private:
 	int  targetForkGearCount;
 	int  targetLiftEncoderCount;
 
+// global fork motor count
+	bool direction;
+	int rawGearToothCount;
+	int gearToothCount;
+	int lastGearToothCount;
+	int difference;
+
+
 
 	bool GetForkLimitSwitchMin();
 	bool GetForkLimitSwitchMax();
@@ -81,6 +89,7 @@ private:
 	void SetForkMotor(float val);
 	void SetLiftMotor(float val);
 	bool CheckForkMotorCurrentSpike();
+	void UpdateGearCount();
 	void SetForkTarget(int target);
 	void SetLiftTarget(float target);
 	bool CheckForkHasReachedTarget();

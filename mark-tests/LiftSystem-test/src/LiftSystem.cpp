@@ -72,6 +72,16 @@ bool LiftSystem::GetLiftLimitSwitchMax()
 //Motors
 void LiftSystem::SetForkMotor(float val)
 {
+	if (val > 0)
+	{
+		//out = true, in = false
+		direction = true;
+	}else if (val < 0)
+	{
+		direction = false;
+	}
+	UpdateGearCount();
+
 	forkMotor->Set(val);
 }
 
@@ -97,6 +107,21 @@ void LiftSystem::SetForkTarget(int target)
 void LiftSystem::SetLiftTarget(float target)
 {
 	targetLiftEncoderCount = target;
+}
+
+void LiftSystem::UpdateGearCount ()
+{
+	rawGearToothCount = gearToothCounter->Get();
+	difference = std::abs(lastGearToothCount-rawGearToothCount);
+	lastGearToothCount = rawGearToothCount;
+
+	if (direction)
+	{
+		gearToothCount += difference;
+	}else
+	{
+		gearToothCount -= difference;
+	}
 }
 
 bool LiftSystem::CheckForkHasReachedTarget()
@@ -628,10 +653,9 @@ void LiftSystem::Update()
 		case released:
 			switch (releasedSS)
 			{
-			case released_idle:
+			case released_idle: // How to get to known position after getting offset by release?
 				if(IsReleaseWideButtonPressed()) // check for two "open" buttons.  if pressed
 				{
-
 					// calculate new fork position based on which button was pressed
 				}else if(IsReleaseNarrowButtonPressed())
 				{
@@ -660,7 +684,6 @@ void LiftSystem::Update()
 		case lift_error:
 
 			break;
-			*/
 
 	}
 }
