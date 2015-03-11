@@ -198,7 +198,7 @@ public:
 #else
 		liftMotor = new CANJaguar(CHAN_LIFT_MOTOR);
 #endif
-		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_LEFT_A, CHAN_LIFT_ENCODER_LEFT_B, false, Encoder::EncodingType::k4X);
+		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_A, CHAN_LIFT_ENCODER_B, false, Encoder::EncodingType::k4X);
 		liftEncoder->SetDistancePerPulse(LIFT_ENCODER_DIST_PER_PULSE);
 		liftEncoder->SetPIDSourceParameter(liftEncoder->kDistance);
 		controlLift = new PIDController(PID_P, PID_I, PID_D, liftEncoder, liftMotor);
