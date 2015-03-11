@@ -8,7 +8,7 @@
 #include "LiftSystem.h"
 #include <math.h>
 
-LiftSystem::LiftSystem(CANSpeedController *pForkMotor, CANSpeedController *pLiftMotor, CANSpeedController *pLeftIntake, CANSpeedController *pRightIntake,
+LiftSystem::LiftSystem(CANSpeedController *pForkMotor, CANSpeedController *pLiftMotor, CANSpeedController *pLeftIntakeMotor, CANSpeedController *pRightIntakeMotor,
 		Counter *pGearToothCounter, Encoder *pLiftEnc, PIDController *pLiftControl,
 		DigitalInput *pForkLimitInner, DigitalInput *pForkLimitOuter, DigitalInput *pLiftLimitLow, DigitalInput *pLiftLimitHigh,
 		Joystick *pOperatorBox)
@@ -16,8 +16,8 @@ LiftSystem::LiftSystem(CANSpeedController *pForkMotor, CANSpeedController *pLift
 	//assign objects
 	forkMotor = pForkMotor;
 	liftMotor = pLiftMotor;
-	leftIntake = pLeftIntake;
-	rightIntake = pRightIntake;
+	leftIntakeMotor = pLeftIntakeMotor;
+	rightIntakeMotor = pRightIntakeMotor;
 	gearToothCounter = pGearToothCounter;
 	liftEnc = pLiftEnc;
 	liftControl = pLiftControl;
@@ -29,7 +29,7 @@ LiftSystem::LiftSystem(CANSpeedController *pForkMotor, CANSpeedController *pLift
 
 	//initialize local variables
 	targetForkGearCount = 0;
-	targetLiftEncoderCount = 0;
+	targetLiftEncoderPos = 0.0;
 	//forkDirection will be initialized when first used
 	//curForkSetSpeed will be initialized when first used
 	absGearToothCount = 0;
@@ -39,23 +39,13 @@ LiftSystem::LiftSystem(CANSpeedController *pForkMotor, CANSpeedController *pLift
 	//initialize the robot state machine
 	robotState = opened_narrow_GP;
 	openedNarrowSS = narrow_idle;
+	TurnIntakesOff();
 }
 
 LiftSystem::~LiftSystem()
 {
-	delete forkMotor;
-	delete liftMotor;
-	delete leftIntake;
-	delete rightIntake;
-	delete gearToothCounter;
-	delete liftEnc;
-	delete forkLimitInner;
-	delete forkLimitOuter;
-	delete liftLimitLow;
-	delete liftLimitHigh;
-	delete operatorBox;
+	operatorBox->SetOutputs(NO_LEDS);
 }
-
 
 //Limit Switches:
 bool LiftSystem::GetForkLimitSwitchInner()
@@ -87,7 +77,7 @@ void LiftSystem::CheckAndHandleHaltPickupGantry()
 	if(GetForkLimitSwitchOuter() || GetLiftLimitSwitchLow() || GetLiftLimitSwitchHigh())
 	{
 		SetForkMotor(MOTOR_STOP);
-		liftControl->Disable();
+		liftControl->Disable(); //stops PID and sets the output to 0
 		robotState = halt_pickup_gantry;
 	}
 }
@@ -102,6 +92,14 @@ void LiftSystem::SetForkMotor(float val)
 bool  LiftSystem::CheckForkMotorCurrentSpike()
 {
 	if (forkMotor->GetOutputCurrent() > FORK_CURRENT_LIMIT)
+		return(true);
+	else
+		return(false);
+}
+
+bool LiftSystem::CheckInakeMotorsCurrentSpike()
+{
+	if ((leftIntakeMotor->GetOutputCurrent() > FORK_CURRENT_LIMIT) || (rightIntakeMotor->GetOutputCurrent() > FORK_CURRENT_LIMIT))
 		return(true);
 	else
 		return(false);
@@ -125,9 +123,9 @@ void LiftSystem::SetForkTarget(int target)
 	targetForkGearCount = target;
 }
 
-void LiftSystem::SetLiftTarget(int target)
+void LiftSystem::SetLiftTarget(float target)
 {
-	targetLiftEncoderCount = target;
+	targetLiftEncoderPos = target;
 	liftControl->SetSetpoint(target);
 }
 
@@ -150,6 +148,22 @@ bool LiftSystem::CheckLiftHasReachedTarget()
 bool LiftSystem::IsButtonPressed(int button)
 {
 	return(operatorBox->GetRawButton(button));
+}
+
+void LiftSystem::TurnIntakesOn()
+{
+	leftIntakeMotor->Set(LEFT_INTAKE_MOTOR_REV_STATE*INTAKE_MOTOR_SPEED);
+	rightIntakeMotor->Set(RIGHT_INTAKE_MOTOR_REV_STATE*INTAKE_MOTOR_SPEED);
+	intakesOn = true;
+	TurnLedOn(INTAKE_LED);
+}
+
+void LiftSystem::TurnIntakesOff()
+{
+	leftIntakeMotor->Set(MOTOR_STOP);
+	rightIntakeMotor->Set(MOTOR_STOP);
+	intakesOn = false;
+	TurnLedOff(INTAKE_LED);
 }
 
 void LiftSystem::TurnLedOn(int led)
@@ -181,6 +195,21 @@ void LiftSystem::TurnLiftLedsOff()
 //Main
 void LiftSystem::Update()
 {
+	//intakes
+	if(IsButtonPressed(INTAKE_BUTTON))
+	{
+		intakesOn = !intakesOn; //(off to on) or (on to off)
+
+		if(intakesOn)
+			TurnIntakesOn();
+		else
+			TurnIntakesOff();
+	}
+
+	if(CheckInakeMotorsCurrentSpike())
+		TurnIntakesOff();
+
+	//lift and fork
 	switch (robotState)
 	{
 		case opened_narrow_GP:
@@ -366,18 +395,13 @@ void LiftSystem::Update()
 				case closed_changing_level:
 					if(CheckLiftHasReachedTarget())
 					{
-						switch(targetLiftEncoderCount)
-						{
-							case CARRY_TWO_POS:
-								robotState = closed_C_Pos_Two;
-								break;
-							case CARRY_THREE_POS:
-								robotState = closed_C_Pos_Three;
-								break;
-							case CARRY_STEP_POS:
+
+						if(abs(targetLiftEncoderPos-CARRY_TWO_POS) <= FLOAT_COMP_TOL)
+							robotState = closed_C_Pos_Two;
+						else if(abs(targetLiftEncoderPos-CARRY_THREE_POS) <= FLOAT_COMP_TOL)
+							robotState = closed_C_Pos_Three;
+						else if(abs(targetLiftEncoderPos-CARRY_STEP_POS) <= FLOAT_COMP_TOL)
 								robotState = closed_C_Pos_Step;
-								break;
-						}
 						closedSS = closed_idle;
 					}
 					else
@@ -444,18 +468,12 @@ void LiftSystem::Update()
 				case closed_changing_level:
 					if(CheckLiftHasReachedTarget())
 					{
-						switch(targetLiftEncoderCount)
-						{
-							case CARRY_ONE_POS:
-								robotState = closed_C_Pos_One;
-								break;
-							case CARRY_THREE_POS:
-								robotState = closed_C_Pos_Three;
-								break;
-							case CARRY_STEP_POS:
-								robotState = closed_C_Pos_Step;
-								break;
-						}
+						if(abs(targetLiftEncoderPos-CARRY_ONE_POS) <= FLOAT_COMP_TOL)
+							robotState = closed_C_Pos_One;
+						else if(abs(targetLiftEncoderPos-CARRY_THREE_POS) <= FLOAT_COMP_TOL)
+							robotState = closed_C_Pos_Three;
+						else if(abs(targetLiftEncoderPos-CARRY_STEP_POS) <= FLOAT_COMP_TOL)
+							robotState = closed_C_Pos_Step;
 						closedSS = closed_idle;
 					}
 					else
@@ -522,18 +540,12 @@ void LiftSystem::Update()
 			case closed_changing_level:
 				if(CheckLiftHasReachedTarget())
 				{
-					switch(targetLiftEncoderCount)
-					{
-					case CARRY_ONE_POS:
+					if(abs(targetLiftEncoderPos-CARRY_ONE_POS) <= FLOAT_COMP_TOL)
 						robotState = closed_C_Pos_One;
-						break;
-					case CARRY_TWO_POS:
+					else if(abs(targetLiftEncoderPos-CARRY_TWO_POS) <= FLOAT_COMP_TOL)
 						robotState = closed_C_Pos_Two;
-						break;
-					case CARRY_STEP_POS:
+					else if(abs(targetLiftEncoderPos-CARRY_STEP_POS) <= FLOAT_COMP_TOL)
 						robotState = closed_C_Pos_Step;
-						break;
-					}
 					closedSS = closed_idle;
 				}
 				else
@@ -600,18 +612,12 @@ void LiftSystem::Update()
 			case closed_changing_level:
 				if(CheckLiftHasReachedTarget())
 				{
-					switch(targetLiftEncoderCount)
-					{
-					case CARRY_ONE_POS:
+					if(abs(targetLiftEncoderPos-CARRY_ONE_POS) <= FLOAT_COMP_TOL)
 						robotState = closed_C_Pos_One;
-						break;
-					case CARRY_TWO_POS:
+					else if(abs(targetLiftEncoderPos-CARRY_TWO_POS) <= FLOAT_COMP_TOL)
 						robotState = closed_C_Pos_Two;
-						break;
-					case CARRY_THREE_POS:
+					else if(abs(targetLiftEncoderPos-CARRY_THREE_POS) <= FLOAT_COMP_TOL)
 						robotState = closed_C_Pos_Three;
-						break;
-					}
 					closedSS = closed_idle;
 				}
 				else
@@ -701,7 +707,7 @@ void LiftSystem::Update()
 			break;
 
 			case halt_pickup_gantry:
-			operatorBox->SetOutputs(1023); //1023 = 2^10-1 to turn all 10 output leds
+				operatorBox->SetOutputs(ALL_LEDS);
 			break;
 	}
 }

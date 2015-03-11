@@ -13,7 +13,7 @@
 
 class LiftSystem {
 public:
-	LiftSystem(CANSpeedController *pForkMotor, CANSpeedController *pLiftMotor, CANSpeedController *pLeftIntake, CANSpeedController *pRightIntake,
+	LiftSystem(CANSpeedController *pForkMotor, CANSpeedController *pLiftMotor, CANSpeedController *pLeftIntakeMotor, CANSpeedController *pRightIntakeMotor,
 			Counter *pGearToothCounter, Encoder *pLiftEnc, PIDController *pLiftControl,
 			DigitalInput *pForkLimitInner, DigitalInput *pForkLimitOuter, DigitalInput *pLiftLimitLow, DigitalInput *pLiftLimitHigh,
 			Joystick *pOperatorBox);
@@ -60,7 +60,7 @@ private:
 	} ForkDirection;
 
 // local motors, encoders, and switches
-	CANSpeedController	*forkMotor, *liftMotor, *leftIntake, *rightIntake;
+	CANSpeedController	*forkMotor, *liftMotor, *leftIntakeMotor, *rightIntakeMotor;
 	Counter     *gearToothCounter;
 	Encoder     *liftEnc;
 	PIDController *liftControl;
@@ -74,16 +74,17 @@ private:
 	ClosedSubState closedSS;
 	ReleasedSubState releasedSS;
 
-
 // other private variables
-	int  targetForkGearCount; //target is an integer gear count
-	int  targetLiftEncoderCount; //target is an integer encoder count
+	float targetLiftEncoderPos; //target is a position
 // fork position tracking
+	int targetForkGearCount; //target is an integer gear count
 	ForkDirection forkDirection;
 	float curForkSetSpeed; //the current fork speed
 	int absGearToothCount; //absolute gear tooth count (not relative)
 	int curGearToothCount; //current gear tooth count
 	int lastGearToothCount; //last gear tooth count
+// intakes
+	bool intakesOn;
 
 	//prototypes
 	bool GetForkLimitSwitchInner();
@@ -91,19 +92,21 @@ private:
 	bool GetLiftLimitSwitchLow();
 	bool GetLiftLimitSwitchHigh();
 	void CheckAndHandleHaltPickupGantry();
-	void SetForkMotor(float val);
+	void SetForkMotor(float val);  //there is no SetLiftMotor since it is controlled by PID
 	bool CheckForkMotorCurrentSpike();
+	bool CheckInakeMotorsCurrentSpike();
 	void UpdateGearToothCount();
 	void SetForkTarget(int target);
-	void SetLiftTarget(int target);
+	void SetLiftTarget(float target);
 	bool CheckForkHasReachedTarget();
 	bool CheckLiftHasReachedTarget();
 	bool IsButtonPressed(int button);
+	void TurnIntakesOn();
+	void TurnIntakesOff();
 	void TurnLedOn(int led);
 	void TurnLedOff(int led);
 	void TurnForkLedsOff();
 	void TurnLiftLedsOff();
-
 };
 
 #endif /* LIFTSYSTEM_H_ */

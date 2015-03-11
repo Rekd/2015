@@ -8,62 +8,78 @@
 #ifndef SRC_CONSTANTS_H_
 #define SRC_CONSTANTS_H_
 
-#define PI							3.141592653L
+#define PI									3.141592653L
+#define FLOAT_COMP_TOL						0.001 //must be within this margin for floats to be equal
 
-#define CHAN_ENCODER_LEFT_A 		9
-#define CHAN_ENCODER_LEFT_B			8
-#define CHAN_ENCODER_RIGHT_A		7
-#define CHAN_ENCODER_RIGHT_B		6
-#define CHAN_FORK_LIMIT_MIN         0
-#define CHAN_FORK_LIMIT_MAX         1
-#define CHAN_LIFT_LIMIT_MIN         2
-#define CHAN_LIFT_LIMIT_MAX         3
-#define CHAN_ENCODER_LIFT           4
+//dio channels
+#define CHAN_ENCODER_LEFT_A 				9
+#define CHAN_ENCODER_LEFT_B					8
+#define CHAN_ENCODER_RIGHT_A				7
+#define CHAN_ENCODER_RIGHT_B				6
+#define CHAN_FORK_LIMIT_MIN         		0
+#define CHAN_FORK_LIMIT_MAX         		1
+#define CHAN_LIFT_LIMIT_MIN        	 		2
+#define CHAN_LIFT_LIMIT_MAX         		3
+#define CHAN_ENCODER_LIFT           		4
+#define CHAN_LEFT_DRIVE_TALONSR				8
+#define CHAN_RIGHT_DRIVE_TALONSR			9
 
-#define ACHAN_GEAR_COUNT            3
+//analog channels
+#define ACHAN_GEAR_COUNT            		3
 
-#define FORK_MOTOR_ID               13
-#define LIFT_MOTOR_ID               12
+//can ids
+#define FORK_MOTOR_ID               		13
+#define LIFT_MOTOR_ID               		12
 
-// #define ENCODER_RESOLUTION			360.0 optical encoders
-#define ENCODER_RESOLUTION			1024.0
-#define CHAN_LEFT_DRIVE_TALONSR		8
-#define CHAN_RIGHT_DRIVE_TALONSR	9
+//control parameters
+#define ENCODER_RESOLUTION					1024.0
+#define LIFT_PROPORTIONAL_TERM           	0.005
+#define LIFT_INTEGRAL_TERM               	0.1
+#define LIFT_DIFFERENTIAL_TERM           	0.001
+#define DRIVE_PROPORTIONAL_TERM           	0.7
+#define DRIVE_INTEGRAL_TERM               	0.5
+#define DRIVE_DIFFERENTIAL_TERM           	0.1
 
-#define WHEEL_DIAMETER				4.0L
-#define WHEEL_CIRCUMFERENCE         (PI*WHEEL_DIAMETER)
-#define DRIVE_ENCODER_CPR           360
+//drive parameters
+#define WHEEL_DIAMETER						4.0L
+#define WHEEL_CIRCUMFERENCE         		(PI*WHEEL_DIAMETER)
+#define DRIVE_ENCODER_CPR           		360
+#define MAX_RPS								8
 
-#define PROPORTIONAL_TERM           0.005f
-#define INTEGRAL_TERM               0.1f
-#define DIFFERENTIAL_TERM           0.001f
-// 1/8 for feed forward
-#define FEED_FORWARD_TERM           0.125
-
-#define MAX_RPS						8
-
+//motor directions and speeds
+#define MOTOR_REV							-1
+#define MOTOR_NOT_REV						1
+#define FORK_MOTOR_REV_STATE				MOTOR_NOT_REV
+#define LIFT_MOTOR_REV_STATE				MOTOR_NOT_REV
+#define LEFT_INTAKE_MOTOR_REV_STATE			MOTOR_NOT_REV
+#define RIGHT_INTAKE_MOTOR_REV_STATE		MOTOR_REV
+//
 #define	MOTOR_STOP							0.0
 #define FORK_MOTOR_OUT_SPEED        		0.4 //out is positive
 #define FORK_MOTOR_IN_SPEED         		-0.4 //in is negative
 #define LIFT_MOTOR_UP_SPEED         		0.4 //up is positive
 #define LIFT_MOTOR_DOWN_SPEED        		-0.4 //down is negative
+#define INTAKE_MOTOR_SPEED					0.3 //intakes only move inwards
+
+//gear tooth counts (integers)
 #define OPEN_NARROW_COUNT           		100 //distance from the inner limit
 #define OPEN_WIDE_COUNT           			365 //distance from the inner limit
 #define CLOSE_COUNT               			50 //distance from the inner limit, this is not actually the close position which will vary, this will just get the forks to close
-#define	PICKUP_POS							50
-#define CARRY_ONE_POS						200
-#define CARRY_TWO_POS						400
-#define CARRY_THREE_POS						800
-#define CARRY_STEP_POS						300
-#define LIFT_OFFSET							30 //this is relative to the release position, not absolute
 #define FORK_OFFSET							30 //this is relative to the release position, not absolute
-#define FORK_CURRENT_LIMIT  				25.0
-#define MOTOR_REV							-1
-#define MOTOR_NOT_REV						1
-#define FORK_MOTOR_REV_STATE				MOTOR_NOT_REV
-#define LIFT_MOTOR_REV_STATE				MOTOR_NOT_REV
 #define FORK_POS_TOL						10
-#define LIFT_POS_TOL						10
+
+//lift encoder positions (float number of rotations)
+#define	PICKUP_POS							4.0
+#define CARRY_ONE_POS						5.0
+#define CARRY_TWO_POS						10.0
+#define CARRY_THREE_POS						15.0
+#define CARRY_STEP_POS						2.0
+#define LIFT_OFFSET							0.5 //this is relative to the release position, not absolute
+#define LIFT_POS_TOL						0.25 //number of encoder rotations
+
+//current limits
+#define FORK_CURRENT_LIMIT  				25.0
+#define INTAKE_CURRENT_LIMIT				25.0
 
 //operator box inputs
 #define OPEN_WIDE_BUTTON					2
@@ -86,5 +102,7 @@
 #define CARRY_TWO_LED						8
 #define CARRY_THREE_LED						9
 #define CARRY_STEP_LED						10
+#define ALL_LEDS							1023 //1023 = 2^10-1 to turn all 10 output leds
+#define NO_LEDS								0
 
 #endif /* SRC_CONSTANTS_H_ */
