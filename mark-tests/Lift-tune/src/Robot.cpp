@@ -51,7 +51,7 @@ private:
 	void TeleopInit()
 	{
 		initialZeroing = true;
-		SetLiftMotor(-MOTOR_SPEED_GO); //move towards the bottom
+		SetLiftMotor(-MOTOR_SPEED_DOWN); //move towards the bottom
 	}
 
 
@@ -76,9 +76,9 @@ private:
 		{
 			//motor control
 			if (joystick->GetRawButton(BUT_JS_UP) && !GetLiftLimitSwitchMax())  // move to the top
-				SetLiftMotor(MOTOR_SPEED_GO);
+				SetLiftMotor(MOTOR_SPEED_UP);
 			else if(joystick->GetRawButton(BUT_JS_DOWN) && !GetLiftLimitSwitchMin())  // move to the bottom
-				SetLiftMotor(-MOTOR_SPEED_GO);
+				SetLiftMotor(-MOTOR_SPEED_DOWN);
 			else
 				SetLiftMotor(MOTOR_SPEED_STOP); //stop
 

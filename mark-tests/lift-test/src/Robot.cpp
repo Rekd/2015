@@ -82,7 +82,7 @@ private:
 	{
 		liftState = lowering;
 		running = true;
-		motorSpeed = -MOTOR_SPEED_GO;  //start by lowering the lift
+		motorSpeed = -MOTOR_SPEED_DOWN;  //start by lowering the lift
 		enterHoldCommand = false;
 		exitHoldCommand = true;
 		liftEncZeroed = false;
@@ -111,7 +111,7 @@ private:
 							maxLiftEncDist = liftEncoder->GetDistance();
 							liftEncFullRanged = true;
 						}
-						motorSpeed = -MOTOR_SPEED_GO;
+						motorSpeed = -MOTOR_SPEED_DOWN;
 						liftState = lowering;
 						SetLiftMotor(motorSpeed);
 					}
@@ -132,7 +132,7 @@ private:
 							liftEncoder->Reset();
 							liftEncZeroed = true;
 						}
-						motorSpeed=MOTOR_SPEED_GO;
+						motorSpeed=MOTOR_SPEED_UP;
 						liftState = raising;
 						SetLiftMotor(motorSpeed);
 					}
@@ -154,7 +154,7 @@ private:
 					if(exitHoldCommand)
 					{
 						controlLift->Disable();
-						motorSpeed = -MOTOR_SPEED_GO;
+						motorSpeed = -MOTOR_SPEED_DOWN;
 						liftState = lowering;
 						SetLiftMotor(motorSpeed);
 					}

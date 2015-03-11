@@ -32,7 +32,8 @@
 #define BUT_JS_DOWN 2
 #define BUT_JS_RES_EN 3
 
-#define MOTOR_SPEED_GO 0.25
+#define MOTOR_SPEED_UP 0.4 //unsigned speed
+#define MOTOR_SPEED_DOWN 0.1 //unsigned speed
 #define MOTOR_SPEED_STOP 0.0
 
 #define STAT_STR_LEN 64 //printing to dashboard

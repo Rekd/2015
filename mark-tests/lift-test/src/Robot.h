@@ -31,7 +31,8 @@
 #define BUT_JS_ENT_POS_HOLD 1 //enter position holding state
 #define BUT_JS_EXIT_POS_HOLD 2 //exit position holding state
 
-#define MOTOR_SPEED_GO 0.25
+#define MOTOR_SPEED_UP 0.4 //unsigned speed
+#define MOTOR_SPEED_DOWN 0.1 //unsigned speed
 #define MOTOR_SPEED_STOP 0.0
 
 //#define PID_POS_TOL 25.0; //must be within this times the encoder distance per pulse to be at the target
