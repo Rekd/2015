@@ -1,7 +1,11 @@
 #include "WPILib.h"
 #include "Robot.h"
 #include "Constants.h"
+#include <iostream>
+#include <fstream>
+using namespace std;
 
+#define COLLECT_DATA 1
 
 class Robot: public IterativeRobot
 {
@@ -21,6 +25,15 @@ private:
 	Encoder *rightEncoder;
 	DriveSystem *driveSystem;
 	char myString[64];
+
+#if COLLECT_DATA
+	struct timespec startTime;
+	struct timespec currTime;
+	struct timespec elapsedTime;
+	ofstream myfile;
+	double timeInSec;
+	float  rate, driveIn;
+#endif
 
 	void RobotInit()
 	{
@@ -46,11 +59,17 @@ private:
 //Instantiate DriveSystem
 		driveSystem = new DriveSystem(leftEncoder, rightEncoder, leftDrive, rightDrive);
 //		driveSystem = new DriveSystem(leftDrive, rightDrive);
+
+		myfile.open ("/home/lvuser/output/PIDdata.txt");
+
+		clock_gettime(CLOCK_REALTIME, &startTime);
+		currTime.tv_sec = 0;
+		currTime.tv_nsec = 0;
 	}
 
 	void AutonomousInit()
 	{
-
+		myfile.close();
 	}
 
 	void AutonomousPeriodic()
@@ -113,6 +132,28 @@ private:
 
 //Give drive instructions
 		driveSystem->SetDriveInstruction(y * MAX_RPS, x * MAX_RPS);
+#if COLLECT_DATA
+		clock_gettime(CLOCK_REALTIME, &currTime);
+		elapsedTime.tv_sec = currTime.tv_sec - startTime.tv_sec;
+		elapsedTime.tv_nsec = currTime.tv_nsec - startTime.tv_nsec;
+
+		timeInSec = elapsedTime.tv_sec + (elapsedTime.tv_nsec*0.000000001);
+		myfile << timeInSec;
+		myfile << ", ";
+
+        rate = driveSystem->GetLeftEncoder();
+        myfile << rate;
+        myfile << ", ";
+        driveIn = driveSystem->GetLeftDriveMotorSpeed();
+		myfile << driveIn;
+		myfile << ", ";
+        rate = driveSystem->GetRightEncoder();
+        myfile << rate;
+        myfile << ", ";
+        driveIn = driveSystem->GetRightDriveMotorSpeed();
+		myfile << driveIn << "\n";
+
+#endif
 		driveSystem->Update();
 
 	}

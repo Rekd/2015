@@ -31,9 +31,9 @@ class DriveSystem {
 		m_pLeftEncoder->SetMinRate(0.25);
 		m_pRightEncoder->SetMinRate(0.25);
         controlLeft = new PIDController(PROPORTIONAL_TERM, INTEGRAL_TERM, DIFFERENTIAL_TERM,
-        		FEED_FORWARD_TERM, m_pLeftEncoder, m_pscMotorLeft);
+        		m_pLeftEncoder, m_pscMotorLeft);
         controlRight = new PIDController(PROPORTIONAL_TERM, INTEGRAL_TERM, DIFFERENTIAL_TERM,
-        		FEED_FORWARD_TERM, m_pRightEncoder, m_pscMotorRight);
+        		m_pRightEncoder, m_pscMotorRight);
     }
 
     DriveSystem(SpeedController *ml, SpeedController *mr) {
@@ -137,20 +137,6 @@ class DriveSystem {
     float GetLeftEncoder() {
         return m_pLeftEncoder->GetRate();
     }
-
-    private:
-    Encoder *m_pLeftEncoder;
-    Encoder *m_pRightEncoder;
-    SpeedController *m_pscMotorLeft;
-    SpeedController *m_pscMotorRight;
-    PIDController *controlLeft;
-    PIDController *controlRight;
-    double distanceMultiplier;
-    double velocity;
-    double angle;
-    int startingTick;
-    bool pidDrive;
-    
     
     float GetLeftDriveMotorSpeed() {
         double speed = velocity;
@@ -167,6 +153,20 @@ class DriveSystem {
         }
         return speed;
     }
+
+    private:
+    Encoder *m_pLeftEncoder;
+    Encoder *m_pRightEncoder;
+    SpeedController *m_pscMotorLeft;
+    SpeedController *m_pscMotorRight;
+    PIDController *controlLeft;
+    PIDController *controlRight;
+    double distanceMultiplier;
+    double velocity;
+    double angle;
+    int startingTick;
+    bool pidDrive;
+
     
     void SetMotorSpeedLeft(float speed) {
     	char myString[64];
