@@ -62,20 +62,22 @@
 #define INTAKE_MOTOR_SPEED					0.3 //intakes only move inwards
 
 //gear tooth counts (integers)
-#define OPEN_NARROW_COUNT           		100 //distance from the inner limit
-#define OPEN_WIDE_COUNT           			365 //distance from the inner limit
-#define CLOSE_COUNT               			50 //distance from the inner limit, this is not actually the close position which will vary, this will just get the forks to close
-#define FORK_OFFSET							30 //this is relative to the release position, not absolute
-#define FORK_POS_TOL						10
+//inner limit is the zero point
+#define OPEN_NARROW_COUNT           		67 //distance from zero point
+#define OPEN_WIDE_COUNT           			310 //distance from zero point
+#define CLOSE_COUNT               			0 //distance from zero point, this is not actually the close position which will vary, this will just get the forks to close
+#define FORK_OFFSET							55 //this is relative to the release position, not absolute
+#define FORK_POS_TOL						3 //this is relative to a set position, not absolute
 
 //lift encoder positions (float number of rotations)
-#define	PICKUP_POS							4.0
-#define CARRY_ONE_POS						5.0
-#define CARRY_TWO_POS						10.0
-#define CARRY_THREE_POS						15.0
-#define CARRY_STEP_POS						2.0
+//lower limit is the zero point
+#define	PICKUP_POS							0.0 //distance from zero point
+#define CARRY_ONE_POS						0.663 //distance from zero point
+#define CARRY_TWO_POS						2.048 //distance from zero point
+#define CARRY_THREE_POS						2.048 //distance from zero point
+#define CARRY_STEP_POS						1.089 //distance from zero point
 #define LIFT_OFFSET							0.5 //this is relative to the release position, not absolute
-#define LIFT_POS_TOL						0.25 //number of encoder rotations
+#define LIFT_POS_TOL						0.1 //number of encoder rotations relative to a set position, not absolute
 
 //current limits
 #define FORK_CURRENT_LIMIT  				25.0

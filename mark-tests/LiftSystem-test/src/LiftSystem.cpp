@@ -682,8 +682,6 @@ void LiftSystem::Update()
 					//do nothing if already at the target since the moving_to_open substate will detect that are already at the target
 					releasedSS = moving_to_open;
 				}
-				else
-					CheckAndHandleHaltPickupGantry();
 				break;
 			case moving_to_open:
 				if(CheckForkHasReachedTarget())
@@ -700,8 +698,14 @@ void LiftSystem::Update()
 						openedWideSS = narrow_idle;
 					}
 				}
-				else
-					CheckAndHandleHaltPickupGantry();
+				else if(GetForkLimitSwitchInner())
+				{
+					SetForkMotor(MOTOR_STOP);
+					SetForkTarget(OPEN_NARROW_COUNT);
+					SetForkMotor(FORK_MOTOR_OUT_SPEED);
+					robotState = opened_narrow_GP;
+					openedNarrowSS = narrow_error_recovery;
+				}
 				break;
 			}
 			break;
