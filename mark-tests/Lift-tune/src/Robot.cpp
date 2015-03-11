@@ -5,18 +5,16 @@ class Robot: public IterativeRobot
 {
 private:
 #if BUILD_VERSION == COMPETITION
-	CANTalon *liftMotor;
+		CANTalon *liftMotor;
 #else
-	CANJaguar *liftMotor;
+		CANJaguar *liftMotor;
 #endif
-
 	Encoder *liftEncoder;
 	DigitalInput *liftLimitSwitchMin;
 	DigitalInput *liftLimitSwitchMax;
 	Joystick *joystick;
 
 	bool initialZeroing; //initial zeroing but not yet zeroed
-	double liftEncoderDistPerPulse = 1.0/LIFT_ENCODER_RESOLUTION;
 
 	bool GetLiftLimitSwitchMin()
 	{
@@ -52,19 +50,8 @@ private:
 
 	void TeleopInit()
 	{
-		joystick = new Joystick(CHAN_JS);
-		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_LEFT_A, CHAN_LIFT_ENCODER_LEFT_B, false, Encoder::EncodingType::k4X);
-		liftEncoder->SetDistancePerPulse(liftEncoderDistPerPulse);
-
-#if BUILD_VERSION == COMPETITION
-		liftMotor = new CANTalon(CHAN_LIFT_MOTOR);
-#else
-		liftMotor = new CANJaguar(CHAN_LIFT_MOTOR);
-#endif
-		liftLimitSwitchMin = new DigitalInput(CHAN_LIFT_LOW_LS);
-		liftLimitSwitchMax = new DigitalInput(CHAN_LIFT_HIGH_LS);
-		SetLiftMotor(-MOTOR_SPEED_GO); //move towards the bottom
 		initialZeroing = true;
+		SetLiftMotor(-MOTOR_SPEED_GO); //move towards the bottom
 	}
 
 
@@ -72,7 +59,7 @@ private:
 	{
 		char myString [STAT_STR_LEN];
 
-		if (initialZeroing)  // moving to the inner limit
+		if (initialZeroing)  // moving towards the bottom
 		{
 			sprintf(myString, "initZero ip\n"); //in progress
 			SmartDashboard::PutString("DB/String 0", myString);
@@ -98,7 +85,6 @@ private:
 			//counter control
 			if (joystick->GetRawButton(BUT_JS_RES_EN))  // reset the encoder
 				liftEncoder->Reset();
-
 		}
 
 		//status
@@ -110,13 +96,37 @@ private:
 		SmartDashboard::PutString("DB/String 3", myString);
 		sprintf(myString, "curr: %f\n", liftMotor->GetOutputCurrent());
 		SmartDashboard::PutString("DB/String 4", myString);
-		sprintf(myString, "enc dist: %d\n", liftEncoder->GetDistance()); //encoder distance
+		sprintf(myString, "enc dist: %f\n", liftEncoder->GetDistance()); //encoder distance
 		SmartDashboard::PutString("DB/String 5", myString);
 	}
 
 	void TestPeriodic()
 	{
 		//not used
+	}
+
+public:
+	Robot()
+	{
+#if BUILD_VERSION == COMPETITION
+		liftMotor = new CANTalon(CHAN_LIFT_MOTOR);
+#else
+		liftMotor = new CANJaguar(CHAN_LIFT_MOTOR);
+#endif
+		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_LEFT_A, CHAN_LIFT_ENCODER_LEFT_B, false, Encoder::EncodingType::k4X);
+		liftEncoder->SetDistancePerPulse(LIFT_ENCODER_DIST_PER_PULSE);
+		liftLimitSwitchMin = new DigitalInput(CHAN_LIFT_LOW_LS);
+		liftLimitSwitchMax = new DigitalInput(CHAN_LIFT_HIGH_LS);
+		joystick = new Joystick(CHAN_JS);
+	}
+
+	~Robot()
+	{
+		delete liftMotor;
+		delete liftEncoder;
+		delete liftLimitSwitchMin;
+		delete liftLimitSwitchMax;
+		delete joystick;
 	}
 };
 

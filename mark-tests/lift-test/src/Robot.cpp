@@ -20,18 +20,15 @@ private:
 	DigitalInput *liftLimitSwitchMax; //at the top of the lift
 	Joystick *joystick; //used to enter and exit the holding position state
 
-	double liftEncoderDistPerPulse = 1.0/LIFT_ENCODER_RESOLUTION;
-
 	LiftState liftState;
-	bool running = false;
-	float  motorSpeed = MOTOR_SPEED_STOP;
-	bool enterHoldCommand = false; //command from the joystick to enter into holding position state
-	bool exitHoldCommand = true; //command from the joystick to exit the holding position state
-	bool liftEncZeroed = false; //zero is at the bottom of the lift
-	bool liftEncFullRanged = false; //full range is at the top of the lift
-	double maxLiftEncDist = UNINIT_VAL; //encoder distance at the top
-	float pidPosSetPoint = UNINIT_VAL; //set point for the PID controller
-
+	bool running;
+	float  motorSpeed;
+	bool enterHoldCommand; //command from the joystick to enter into holding position state
+	bool exitHoldCommand; //command from the joystick to exit the holding position state
+	bool liftEncZeroed; //zero is at the bottom of the lift
+	bool liftEncFullRanged; //full range is at the top of the lift
+	float maxLiftEncDist; //encoder distance at the top
+	float pidPosSetPoint; //set point for the PID controller
 
 	bool GetLiftLimitSwitchMin()
 	{
@@ -63,7 +60,7 @@ private:
 		if(!(controlLift->IsEnabled()))
 			return false;
 		else
-			return (abs(DistToSetpoint()) < PID_POS_TOL*liftEncoderDistPerPulse);
+			return (abs(DistToSetpoint()) < PID_POS_TOL*LIFT_ENCODER_DIST_PER_PULSE);
 	}
 
 	void AutonomousInit()
@@ -84,28 +81,14 @@ private:
 	void TeleopInit()
 	{
 		liftState = lowering;
-
-		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_LEFT_A, CHAN_LIFT_ENCODER_LEFT_B, false, Encoder::EncodingType::k4X);
-		liftEncoder->SetDistancePerPulse(liftEncoderDistPerPulse);
-		liftEncoder->SetMinRate(MIN_ENCODER_RATE);
-
-		liftEncoder->SetPIDSourceParameter(liftEncoder->kDistance);
-		controlLift = new PIDController(PID_P, PID_I, PID_D, PID_F, liftEncoder, liftMotor);
-		controlLift->SetContinuous(true); //treat input to controller as continuous; true by default
-		controlLift->SetOutputRange(PID_OUT_MIN, PID_OUT_MAX);
-		controlLift->Disable(); //do not enable until in holding position mode
-
-
-#if BUILD_VERSION == COMPETITION
-		liftMotor = new CANTalon(CHAN_LIFT_MOTOR);
-#else
-		liftMotor = new CANJaguar(CHAN_LIFT_MOTOR);
-#endif
-		liftLimitSwitchMin = new DigitalInput(CHAN_LIFT_LOW_LS);
-		liftLimitSwitchMax = new DigitalInput(CHAN_LIFT_HIGH_LS);
-		joystick = new Joystick(CHAN_JS);
-		motorSpeed = -MOTOR_SPEED_GO;  //start by lowering the lift
 		running = true;
+		motorSpeed = -MOTOR_SPEED_GO;  //start by lowering the lift
+		enterHoldCommand = false;
+		exitHoldCommand = true;
+		liftEncZeroed = false;
+		liftEncFullRanged = false;
+		maxLiftEncDist = UNINIT_VAL;
+		pidPosSetPoint = UNINIT_VAL;
 	}
 
 	void TeleopPeriodic()
@@ -120,8 +103,6 @@ private:
 			switch (liftState)
 			{
 				case raising:
-					SetLiftMotor(motorSpeed);
-
 					if (GetLiftLimitSwitchMax())
 					{
 						SetLiftMotor(MOTOR_SPEED_STOP);
@@ -132,6 +113,7 @@ private:
 						}
 						motorSpeed = -MOTOR_SPEED_GO;
 						liftState = lowering;
+						SetLiftMotor(motorSpeed);
 					}
 
 					if (enterHoldCommand && liftEncZeroed && liftEncFullRanged)
@@ -142,11 +124,8 @@ private:
 					break;
 
 				case lowering:
-					SetLiftMotor(motorSpeed);
-
 					if (GetLiftLimitSwitchMin())
 					{
-
 						SetLiftMotor(MOTOR_SPEED_STOP);
 						if(!liftEncZeroed)
 						{
@@ -155,6 +134,7 @@ private:
 						}
 						motorSpeed=MOTOR_SPEED_GO;
 						liftState = raising;
+						SetLiftMotor(motorSpeed);
 					}
 
 					if (enterHoldCommand && liftEncZeroed && liftEncFullRanged)
@@ -176,8 +156,8 @@ private:
 						controlLift->Disable();
 						motorSpeed = -MOTOR_SPEED_GO;
 						liftState = lowering;
+						SetLiftMotor(motorSpeed);
 					}
-
 				break;
 			}
 		}
@@ -208,6 +188,36 @@ private:
 	void TestPeriodic()
 	{
 		//not used
+	}
+
+public:
+	Robot()
+	{
+#if BUILD_VERSION == COMPETITION
+		liftMotor = new CANTalon(CHAN_LIFT_MOTOR);
+#else
+		liftMotor = new CANJaguar(CHAN_LIFT_MOTOR);
+#endif
+		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_LEFT_A, CHAN_LIFT_ENCODER_LEFT_B, false, Encoder::EncodingType::k4X);
+		liftEncoder->SetDistancePerPulse(LIFT_ENCODER_DIST_PER_PULSE);
+		liftEncoder->SetPIDSourceParameter(liftEncoder->kDistance);
+		controlLift = new PIDController(PID_P, PID_I, PID_D, liftEncoder, liftMotor);
+		controlLift->SetContinuous(true); //treat input to controller as continuous; true by default
+		controlLift->SetOutputRange(PID_OUT_MIN, PID_OUT_MAX);
+		controlLift->Disable(); //do not enable until in holding position mode
+		liftLimitSwitchMin = new DigitalInput(CHAN_LIFT_LOW_LS);
+		liftLimitSwitchMax = new DigitalInput(CHAN_LIFT_HIGH_LS);
+		joystick = new Joystick(CHAN_JS);
+	}
+
+	~Robot()
+	{
+		delete liftMotor;
+		delete liftEncoder;
+		delete controlLift;
+		delete liftLimitSwitchMin;
+		delete liftLimitSwitchMax;
+		delete joystick;
 	}
 };
 

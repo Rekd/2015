@@ -4,8 +4,11 @@
 #define MOTOR_REV							-1
 #define MOTOR_NOT_REV						1
 #define MOTOR_STOP							0.0
-#define PRACTICE 0
-#define COMPETITION 1
+#define PRACTICE 							0
+#define COMPETITION 						1
+#define ALL_LEDS_ON							1023 //in binary turns on 10 LEDs
+#define ALL_LEDS_OFF						0
+#define STATUS_STR_LEN						64
 
 //configure
 #define BUILD_VERSION 						PRACTICE
@@ -16,8 +19,11 @@
 #define CH_FORK_LS_MAX						1 //dio
 #define CH_JS								3 //usb
 #define MOTOR_SPEED							0.3 //should be non-signed
+#define MAX_CUR_TH							25.0 //maximum current threshold, amps
+#define GEAR_TRIGGER_MIN					450 //0 to 4096 representing 0V to 5V
+#define GEAR_TRIGGER_MAX					2400
 
-//speed convention is:
+//speed convention for forks is:
 //+ is outwards
 //- is inwards
 
@@ -37,19 +43,17 @@ private:
 #else
 	CANJaguar *forkMotor;
 #endif
-	Counter *gearToothCounter;
 	AnalogTrigger *toothTrigger;
+	Counter *gearToothCounter;
 	DigitalInput *forkLimitSwitchMin;
 	DigitalInput *forkLimitSwitchMax;
-
 	Joystick *dsBox;  //this is a separate test running simultaneous with the fork test
 
-	int running; //0 = do not run the test program, 1 = run the test program
+	bool running; //false = do not run the test program, true = run the test program
 
 	ForkState forkState;
 
 	// fork position tracking
-	int  targetForkGearCount; //target is an integer gear count
 	ForkDirection forkDirection;
 	float curForkSetSpeed; //the current fork speed
 	int absGearToothCount; //absolute gear tooth count (not relative)
@@ -73,20 +77,6 @@ private:
 	{
 		curForkSetSpeed = FORK_MOTOR_REV_STATE*val;
 		forkMotor->Set(curForkSetSpeed);
-		/*
-		if (val > 0.0)
-		{
-			//out = true, in = false
-			UpdateGearCount();
-			direction = true;
-		}else if (val < 0.0)
-		{
-			UpdateGearCount();
-			direction = false;
-		}
-
-		forkMotor->Set(val);
-		*/
 	}
 
 	void UpdateGearCount ()
@@ -100,22 +90,6 @@ private:
 		curGearToothCount = gearToothCounter->Get();
 		absGearToothCount += forkDirection*(curGearToothCount-lastGearToothCount);
 		lastGearToothCount = curGearToothCount;
-
-		/*
-		rawGearToothCount = gearToothCounter->Get();
-//		difference = std::abs(lastGearToothCount-rawGearToothCount);
-//		lastGearToothCount = rawGearToothCount;
-
-		if (direction)
-		{
-			globalGearToothCount += rawGearToothCount;
-		}
-		else
-		{
-			globalGearToothCount -= rawGearToothCount;
-		}
-		gearToothCounter->Reset();
-		*/
 	}
 
 	void AutonomousInit()
@@ -134,20 +108,18 @@ private:
 		absGearToothCount = 0;
 		curGearToothCount = 0;
 		lastGearToothCount = 0;
-		running = true;
-		//targetForkGearCount not used in this test code
+		running = true; //
 		//forkDirection initialized when first used
 		//curForkSetSpeed initialized when first used
+		dsBox->SetOutputs(ALL_LEDS_OFF);
 	}
 
 	void TeleopPeriodic()
 	{
-		char myString [64];
+		char myString [STATUS_STR_LEN];
 
 		if (running)
 		{
-			dsBox->SetOutputs(1023);
-
 			switch (forkState)
 			{
 				case closing:
@@ -155,10 +127,8 @@ private:
 					if (GetForkLimitSwitchMin())
 					{
 						SetForkMotor(MOTOR_STOP);
-						sprintf(myString, "max count: %d\n", gearToothCounter->Get());
-						SmartDashboard::PutString("DB/String 5", myString);
-//						gearToothCounter->Reset();
 						SetForkMotor(MOTOR_SPEED);
+						dsBox->SetOutputs(ALL_LEDS_ON);
 						forkState = opening;
 					}
 					break;
@@ -168,10 +138,8 @@ private:
 					if (GetForkLimitSwitchMax())
 					{
 						SetForkMotor(MOTOR_STOP);
-						sprintf(myString, "max count: %d\n", gearToothCounter->Get());
-						SmartDashboard::PutString("DB/String 5", myString);
-//						gearToothCounter->Reset();
 						SetForkMotor(-MOTOR_SPEED);
+						dsBox->SetOutputs(ALL_LEDS_OFF);
 						forkState = closing;
 					}
 					break;
@@ -179,26 +147,22 @@ private:
 		}
 
 		//current monitor check for safety
-		if (forkMotor->GetOutputCurrent() > 25.0f)
+		if (forkMotor->GetOutputCurrent() > MAX_CUR_TH)
 		{
 			SetForkMotor(MOTOR_STOP);
 			running = false;
 		}
 
 		sprintf(myString, "curr: %f\n", forkMotor->GetOutputCurrent());
-		SmartDashboard::PutString("DB/String 1", myString);
-		sprintf(myString, "gear count: %d\n", gearToothCounter->Get());
-		SmartDashboard::PutString("DB/String 2", myString);
+		SmartDashboard::PutString("DB/String 0", myString);
 		sprintf(myString, "State: %d\n", forkState);
-		SmartDashboard::PutString("DB/String 3", myString);
+		SmartDashboard::PutString("DB/String 1", myString);
 		sprintf(myString, "running: %d\n", running);
-		SmartDashboard::PutString("DB/String 4", myString);
+		SmartDashboard::PutString("DB/String 2", myString);
 		sprintf(myString, "forkDir: %d\n", forkDirection);
-		SmartDashboard::PutString("DB/String 5", myString);
-//		sprintf(myString, "calcGear: %d\n", gearToothCount);
-//		SmartDashboard::PutString("DB/String 5", myString);
+		SmartDashboard::PutString("DB/String 3", myString);
 		sprintf(myString, "abs gear count: %d\n", absGearToothCount);
-		SmartDashboard::PutString("DB/String 9", myString);
+		SmartDashboard::PutString("DB/String 4", myString);
 	}
 
 	void TestPeriodic()
@@ -209,28 +173,26 @@ private:
 public:
 	Robot()
 	{
-		toothTrigger = new AnalogTrigger(CH_TOOTH_TRIGGER);
-		toothTrigger->SetLimitsRaw(450, 2400);
-		gearToothCounter = new Counter(toothTrigger);
 #if BUILD_VERSION == COMPETITION
 		forkMotor = new CANTalon(CH_FORK_MOTOR);
 #else
 		forkMotor = new CANJaguar(CH_FORK_MOTOR);
 #endif
+		toothTrigger = new AnalogTrigger(CH_TOOTH_TRIGGER);
+		toothTrigger->SetLimitsRaw(GEAR_TRIGGER_MIN, GEAR_TRIGGER_MAX);
+		gearToothCounter = new Counter(toothTrigger);
 		forkLimitSwitchMin = new DigitalInput(CH_FORK_LS_MIN);
 		forkLimitSwitchMax = new DigitalInput(CH_FORK_LS_MAX);
-
 		dsBox = new Joystick(CH_JS);
 	}
 
-	~Robot() {
+	~Robot()
+	{
+		delete forkMotor;
 		delete toothTrigger;
 		delete gearToothCounter;
-		delete forkMotor;
 		delete forkLimitSwitchMin;
 		delete forkLimitSwitchMax;
-		dsBox->SetOutputs(0);
-
 		delete dsBox;
 	}
 };

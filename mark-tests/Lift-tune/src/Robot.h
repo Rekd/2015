@@ -12,12 +12,10 @@
 #define COMPETITION 1
 #define BUILD_VERSION PRACTICE
 
-
-
 #define CHAN_LIFT_ENCODER_LEFT_A 8 //dio
 #define CHAN_LIFT_ENCODER_LEFT_B 9 //dio
 #define LIFT_ENCODER_RESOLUTION 1024
-#define MIN_ENCODER_RATE 0.25 //Minimum encoder rate before motion is considered stopped
+#define LIFT_ENCODER_DIST_PER_PULSE (1.0/LIFT_ENCODER_RESOLUTION)
 
 #define CHAN_LIFT_LOW_LS 0 //dio
 #define CHAN_LIFT_HIGH_LS 1 //dio
@@ -27,7 +25,7 @@
 //convention in the code is the a negative motor speed is down and a positive motor speed is up
 #define FWD 1 //multiply by the motor set value to set the direction in SetLiftMotor
 #define REV -1
-#define LIFT_MOTOR_DIR FWD
+#define LIFT_MOTOR_DIR REV
 
 #define CHAN_JS 0 //usb
 #define BUT_JS_UP 1

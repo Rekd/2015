@@ -9,9 +9,8 @@ private:
 #else
 	CANJaguar *forkMotor;
 #endif
-
-	Counter *gearToothCounter;
 	AnalogTrigger *toothTrigger;
+	Counter *gearToothCounter;
 	DigitalInput *forkLimitSwitchMin;
 	DigitalInput *forkLimitSwitchMax;
 	Joystick *joystick;
@@ -32,7 +31,7 @@ private:
 
 	void SetForkMotor(float val)
 	{
-		forkMotor->Set(LIFT_MOTOR_DIR*val);
+		forkMotor->Set(FORK_MOTOR_DIR*val);
 	}
 
 	void AutonomousInit()
@@ -52,19 +51,7 @@ private:
 
 	void TeleopInit()
 	{
-		joystick = new Joystick(CHAN_JS);
-		toothTrigger = new AnalogTrigger(CHAN_GTC);
-		toothTrigger->SetLimitsRaw(ANALOG_TRIG_MIN, ANALOG_TRIG_MAX);
-		gearToothCounter = new Counter(toothTrigger);
-
-#if BUILD_VERSION == COMPETITION
-		forkMotor = new CANTalon(CHAN_FORK_MOTOR);
-#else
-		forkMotor = new CANJaguar(CHAN_FORK_MOTOR);
-#endif
-		forkLimitSwitchMin = new DigitalInput(CHAN_FORK_MIN_LS);
-		forkLimitSwitchMax = new DigitalInput(CHAN_FORK_MAX_LS);
-		SetForkMotor(-MOTOR_SPEED_GO); //move towards the bottom
+		SetForkMotor(-MOTOR_SPEED_GO); //move to the inner limit switch
 		initialZeroing = true;
 	}
 
@@ -99,7 +86,6 @@ private:
 			//counter control
 			if (joystick->GetRawButton(BUT_JS_RES_GTC))  // reset the gear tooth counter
 				gearToothCounter->Reset();
-
 		}
 
 		//status
@@ -118,6 +104,32 @@ private:
 	void TestPeriodic()
 	{
 		//not used
+	}
+
+public:
+	Robot()
+	{
+#if BUILD_VERSION == COMPETITION
+		forkMotor = new CANTalon(CHAN_FORK_MOTOR);
+#else
+		forkMotor = new CANJaguar(CHAN_FORK_MOTOR);
+#endif
+		toothTrigger = new AnalogTrigger(CHAN_GTC);
+		toothTrigger->SetLimitsRaw(ANALOG_TRIG_MIN, ANALOG_TRIG_MAX);
+		gearToothCounter = new Counter(toothTrigger);
+		forkLimitSwitchMin = new DigitalInput(CHAN_FORK_MIN_LS);
+		forkLimitSwitchMax = new DigitalInput(CHAN_FORK_MAX_LS);
+		joystick = new Joystick(CHAN_JS);
+	}
+
+	~Robot()
+	{
+		delete forkMotor;
+		delete toothTrigger;
+		delete gearToothCounter;
+		delete forkLimitSwitchMin;
+		delete forkLimitSwitchMax;
+		delete joystick;
 	}
 };
 

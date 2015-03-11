@@ -26,7 +26,7 @@
 //convention in the code is the a negative motor speed is inwards and a positive motor speed is outwards
 #define FWD 1 //multiply by the motor set value to set the direction in SetForkMotor
 #define REV -1
-#define LIFT_MOTOR_DIR FWD
+#define FORK_MOTOR_DIR REV
 
 #define CHAN_JS 0 //usb
 #define BUT_JS_IN 1
