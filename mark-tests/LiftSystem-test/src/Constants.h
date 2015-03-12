@@ -10,17 +10,22 @@
 
 #define PI									3.141592653L
 #define FLOAT_COMP_TOL						0.001 //must be within this margin for floats to be equal
+#define STAT_STR_LEN 64 //printing to dashboard
+#define UNINIT_VAL -1 //uninitialized valued
+
 
 //dio channels
 #define CHAN_ENCODER_LEFT_A 				9
 #define CHAN_ENCODER_LEFT_B					8
 #define CHAN_ENCODER_RIGHT_A				7
 #define CHAN_ENCODER_RIGHT_B				6
+#define CHAN_LIFT_ENCODER_A                 5
+#define CHAN_LIFT_ENCODER_B                 4
 #define CHAN_FORK_LIMIT_MIN         		0
 #define CHAN_FORK_LIMIT_MAX         		1
 #define CHAN_LIFT_LIMIT_MIN        	 		2
 #define CHAN_LIFT_LIMIT_MAX         		3
-#define CHAN_ENCODER_LIFT           		4
+
 #define CHAN_LEFT_DRIVE_TALONSR				8
 #define CHAN_RIGHT_DRIVE_TALONSR			9
 
@@ -33,9 +38,10 @@
 
 //control parameters
 #define ENCODER_RESOLUTION					1024.0
-#define LIFT_PROPORTIONAL_TERM           	0.005
-#define LIFT_INTEGRAL_TERM               	0.1
+#define LIFT_PROPORTIONAL_TERM           	2.0
+#define LIFT_INTEGRAL_TERM               	0.5
 #define LIFT_DIFFERENTIAL_TERM           	0.001
+
 #define DRIVE_PROPORTIONAL_TERM           	0.7
 #define DRIVE_INTEGRAL_TERM               	0.5
 #define DRIVE_DIFFERENTIAL_TERM           	0.1
@@ -45,18 +51,24 @@
 #define WHEEL_CIRCUMFERENCE         		(PI*WHEEL_DIAMETER)
 #define DRIVE_ENCODER_CPR           		360
 #define MAX_RPS								8
+#define LIFT_ENCODER_RESOLUTION 1024
+#define LIFT_ENCODER_DIST_PER_PULSE (1.0/LIFT_ENCODER_RESOLUTION)
+
+// Min and max lift PID output values
+#define LIFT_PID_OUT_MIN -0.1 //minimum controller output
+#define LIFT_PID_OUT_MAX 0.7 //maximum controller output
 
 //motor directions and speeds
 #define MOTOR_REV							-1
 #define MOTOR_NOT_REV						1
-#define FORK_MOTOR_REV_STATE				MOTOR_NOT_REV
+#define FORK_MOTOR_REV_STATE				MOTOR_REV
 #define LIFT_MOTOR_REV_STATE				MOTOR_NOT_REV
 #define LEFT_INTAKE_MOTOR_REV_STATE			MOTOR_NOT_REV
 #define RIGHT_INTAKE_MOTOR_REV_STATE		MOTOR_REV
 //
 #define	MOTOR_STOP							0.0
-#define FORK_MOTOR_OUT_SPEED        		0.4 //out is positive
-#define FORK_MOTOR_IN_SPEED         		-0.4 //in is negative
+#define FORK_MOTOR_OUT_SPEED        		0.6 //out is positive
+#define FORK_MOTOR_IN_SPEED         		-0.6 //in is negative
 #define LIFT_MOTOR_UP_SPEED         		0.4 //up is positive
 #define LIFT_MOTOR_DOWN_SPEED        		-0.4 //down is negative
 #define INTAKE_MOTOR_SPEED					0.3 //intakes only move inwards
@@ -71,7 +83,7 @@
 
 //lift encoder positions (float number of rotations)
 //lower limit is the zero point
-#define	PICKUP_POS							0.0 //distance from zero point
+#define	PICKUP_POS							0.2 //distance from zero point
 #define CARRY_ONE_POS						0.663 //distance from zero point
 #define CARRY_TWO_POS						2.048 //distance from zero point
 #define CARRY_THREE_POS						2.048 //distance from zero point

@@ -85,7 +85,7 @@ private:
 				SetLiftMotor(MOTOR_SPEED_STOP); //stop
 
 			//counter control
-			if (joystick->GetRawButton(BUT_JS_RES_EN))  // reset the encoder
+			if ((joystick->GetRawButton(BUT_JS_RES_EN)) || (GetLiftLimitSwitchMin()))  // reset the encoder
 				liftEncoder->Reset();
 		}
 

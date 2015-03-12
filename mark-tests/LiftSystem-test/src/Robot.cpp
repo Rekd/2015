@@ -14,13 +14,16 @@ private:
 #else
 	CANJaguar * forkMotor;
 	CANJaguar * liftMotor;
+	CANJaguar * leftIntakeMotor;
+	CANJaguar * rightIntakeMotor;
 #endif
-	Encoder     *liftEnc;
+	PIDController *controlLift;
+	Encoder     *liftEncoder;
 	Counter     *gearToothCounter;
 	AnalogTrigger *toothTrigger;
 	DigitalInput  *forkLimitMin, *forkLimitMax, *liftLimitMin, *liftLimitMax;
 
-	Joystick *joystick;
+	Joystick *operatorBox;
 	bool runningZero, zeroed, runningOpenNarrow;
 
 
@@ -36,23 +39,28 @@ private:
 #else
 		forkMotor = new CANJaguar(FORK_MOTOR_ID);
 		liftMotor = new CANJaguar(LIFT_MOTOR_ID);
+		leftIntakeMotor = new CANJaguar(FORK_MOTOR_ID);
+		rightIntakeMotor = new CANJaguar(LIFT_MOTOR_ID);
 #endif
 
-// add later		liftEnc = new Encoder(CHAN_ENCODER_LIFT);
+		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_A, CHAN_LIFT_ENCODER_B, false, Encoder::EncodingType::k4X);
+		liftEncoder->SetDistancePerPulse(LIFT_ENCODER_DIST_PER_PULSE);
+
+		controlLift = new PIDController(LIFT_PROPORTIONAL_TERM, LIFT_INTEGRAL_TERM, LIFT_DIFFERENTIAL_TERM, liftEncoder, liftMotor);
+		controlLift->SetContinuous(true); //treat input to controller as continuous; true by default
+		controlLift->SetOutputRange(LIFT_PID_OUT_MIN, LIFT_PID_OUT_MAX);
+		controlLift->Enable();
+
 		forkLimitMin = new DigitalInput(CHAN_FORK_LIMIT_MIN);
 		forkLimitMax = new DigitalInput(CHAN_FORK_LIMIT_MAX);
 		liftLimitMin = new DigitalInput(CHAN_LIFT_LIMIT_MIN);
 		liftLimitMax = new DigitalInput(CHAN_LIFT_LIMIT_MAX);
 
-		joystick = new Joystick(0);
+		operatorBox = new Joystick(3);
 
-		robotLiftSystem = new LiftSystem(forkMotor, liftMotor, gearToothCounter, liftEnc,
-				 forkLimitMin, forkLimitMax, liftLimitMin, liftLimitMax, joystick);
-
-
-
-
-
+		robotLiftSystem = new LiftSystem(forkMotor, liftMotor, leftIntakeMotor, rightIntakeMotor,
+				gearToothCounter, liftEncoder, controlLift,
+				 forkLimitMin, forkLimitMax, liftLimitMin, liftLimitMax, operatorBox);
 	}
 
 	void AutonomousInit()
@@ -60,7 +68,7 @@ private:
 		runningZero = true;
 		zeroed = false;
 		runningOpenNarrow = false;
-		forkMotor->Set(0.25f);
+		forkMotor->Set(0.5f);
 	}
 
 	void AutonomousPeriodic()
@@ -75,7 +83,7 @@ private:
 			if (!forkLimitMin->Get())
 			{
 				gearToothCounter->Reset();
-				forkMotor->Set(-0.25f);
+				forkMotor->Set(-0.5f);
 				zeroed=true;
 				runningZero = false;
 				runningOpenNarrow = true;
@@ -114,6 +122,9 @@ private:
 		SmartDashboard::PutString("DB/String 7", myString);
 		SmartDashboard::PutString("DB/String 8", myString);
 		SmartDashboard::PutString("DB/String 9", myString);
+
+// add later?		robotLiftSystem->MoveToResetState();
+		controlLift->SetSetpoint(PICKUP_POS);
 	}
 
 	void TeleopPeriodic()

@@ -19,6 +19,8 @@ public:
 			Joystick *pOperatorBox);
 	virtual ~LiftSystem();
 	void Update();
+	void MoveToKnownState();
+	void MoveToResetState();
 
 private:
 	typedef enum {opened_narrow_GP,
@@ -29,20 +31,21 @@ private:
 		closed_C_Pos_Step,
 		released,
 		halt_pickup_gantry,
+		reset
 		} RobotState;
 
 	typedef enum {narrow_idle,
 		narrow_closing_fork,
 		opening_wide,
 		narrow_changing_lift,
-		narrow_error_recovery,
+		narrow_error_recovery
 		} openedNarrowSubState;
 
 	typedef enum {wide_idle,
 		wide_closing_fork,
 		opening_narrow,
 		wide_changing_lift,
-		wide_error_recovery,
+		wide_error_recovery
 		} openedWideSubState;
 
 	typedef enum {closed_idle,
@@ -53,6 +56,8 @@ private:
 	typedef enum {released_idle,
 			released_lowering,
 			moving_to_open} ReleasedSubState;
+
+	typedef enum {movingToReset, atReset, movingToPickupON} ResetSubState;
 
 	typedef enum {
 		inwards = -1,
@@ -73,6 +78,7 @@ private:
 	openedWideSubState openedWideSS;
 	ClosedSubState closedSS;
 	ReleasedSubState releasedSS;
+	ResetSubState resetSS;
 
 // other private variables
 	float targetLiftEncoderPos; //target is a position
@@ -86,6 +92,9 @@ private:
 // intakes
 	bool intakesOn;
 
+// global string
+	char myString [64];
+
 	//prototypes
 	bool GetForkLimitSwitchInner();
 	bool GetForkLimitSwitchOuter();
@@ -97,8 +106,13 @@ private:
 	bool CheckInakeMotorsCurrentSpike();
 	void UpdateGearToothCount();
 	void SetForkTarget(int target);
+	int GetForkTarget();
 	void SetLiftTarget(float target);
+	void DisableController();
+	void EnableController();
+	void ResetLiftEncoder();
 	bool CheckForkHasReachedTarget();
+	float DistToSetpoint();
 	bool CheckLiftHasReachedTarget();
 	bool IsButtonPressed(int button);
 	void TurnIntakesOn();

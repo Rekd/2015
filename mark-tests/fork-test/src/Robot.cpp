@@ -20,8 +20,8 @@
 #define CH_JS								3 //usb
 #define MOTOR_SPEED							0.3 //should be non-signed
 #define MAX_CUR_TH							25.0 //maximum current threshold, amps
-#define GEAR_TRIGGER_MIN					450 //0 to 4096 representing 0V to 5V
-#define GEAR_TRIGGER_MAX					2400
+#define GEAR_TRIGGER_MIN					450  // was 450 //0 to 4096 representing 0V to 5V
+#define GEAR_TRIGGER_MAX					2000
 
 //speed convention for forks is:
 //+ is outwards
@@ -43,8 +43,12 @@ private:
 #else
 	CANJaguar *forkMotor;
 #endif
+
 	AnalogTrigger *toothTrigger;
 	Counter *gearToothCounter;
+
+//	AnalogInput *aIn;
+
 	DigitalInput *forkLimitSwitchMin;
 	DigitalInput *forkLimitSwitchMax;
 	Joystick *dsBox;  //this is a separate test running simultaneous with the fork test
@@ -59,6 +63,9 @@ private:
 	int absGearToothCount; //absolute gear tooth count (not relative)
 	int curGearToothCount; //current gear tooth count
 	int lastGearToothCount; //last gear tooth count
+
+//	int16_t minAVal = 32767;
+//	int16_t maxAVal = -32767;
 
 
 	bool GetForkLimitSwitchMin()
@@ -126,6 +133,8 @@ private:
 					UpdateGearCount (); //update whenever the forks are moving
 					if (GetForkLimitSwitchMin())
 					{
+						sprintf(myString, "min gear count: %d\n", absGearToothCount);
+						SmartDashboard::PutString("DB/String 8", myString);
 						SetForkMotor(MOTOR_STOP);
 						SetForkMotor(MOTOR_SPEED);
 						dsBox->SetOutputs(ALL_LEDS_ON);
@@ -137,6 +146,8 @@ private:
 					UpdateGearCount (); //update whenever the forks are moving
 					if (GetForkLimitSwitchMax())
 					{
+						sprintf(myString, "max gear count: %d\n", absGearToothCount);
+						SmartDashboard::PutString("DB/String 9", myString);
 						SetForkMotor(MOTOR_STOP);
 						SetForkMotor(-MOTOR_SPEED);
 						dsBox->SetOutputs(ALL_LEDS_OFF);
@@ -163,6 +174,19 @@ private:
 		SmartDashboard::PutString("DB/String 3", myString);
 		sprintf(myString, "abs gear count: %d\n", absGearToothCount);
 		SmartDashboard::PutString("DB/String 4", myString);
+
+#if 0
+		if (minAVal > aIn->GetValue())
+			minAVal = aIn->GetValue();
+		if (maxAVal < aIn->GetValue())
+			maxAVal = aIn->GetValue();
+		sprintf(myString, "min A val: %d\n", minAVal);
+		SmartDashboard::PutString("DB/String 5", myString);
+		sprintf(myString, "max A val: %d\n", maxAVal);
+		SmartDashboard::PutString("DB/String 6", myString);
+#endif
+
+
 	}
 
 	void TestPeriodic()
@@ -181,6 +205,7 @@ public:
 		toothTrigger = new AnalogTrigger(CH_TOOTH_TRIGGER);
 		toothTrigger->SetLimitsRaw(GEAR_TRIGGER_MIN, GEAR_TRIGGER_MAX);
 		gearToothCounter = new Counter(toothTrigger);
+//		aIn = new AnalogInput(CH_TOOTH_TRIGGER);
 		forkLimitSwitchMin = new DigitalInput(CH_FORK_LS_MIN);
 		forkLimitSwitchMax = new DigitalInput(CH_FORK_LS_MAX);
 		dsBox = new Joystick(CH_JS);

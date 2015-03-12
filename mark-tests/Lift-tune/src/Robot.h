@@ -26,14 +26,14 @@
 //convention in the code is the a negative motor speed is down and a positive motor speed is up
 #define FWD 1 //multiply by the motor set value to set the direction in SetLiftMotor
 #define REV -1
-#define LIFT_MOTOR_DIR REV
+#define LIFT_MOTOR_DIR FWD
 
 #define CHAN_JS 0 //usb
 #define BUT_JS_UP 1
 #define BUT_JS_DOWN 2
 #define BUT_JS_RES_EN 3
 
-#define MOTOR_SPEED_UP 0.4 //unsigned speed
+#define MOTOR_SPEED_UP 0.6 //unsigned speed
 #define MOTOR_SPEED_DOWN 0.1 //unsigned speed
 #define MOTOR_SPEED_STOP 0.0
 
