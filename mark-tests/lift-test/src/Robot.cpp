@@ -13,11 +13,14 @@ private:
 
 #if BUILD_VERSION == COMPETITION
 	CANTalon *liftMotor;
+	CANTalon *liftMotor2;
 #else
 	CANJaguar *liftMotor;
+	CANJaguar *liftMotor2;
 #endif
 	Encoder *liftEncoder;
 	PIDController *controlLift;
+	PIDController *controlLift2;
 	DigitalInput *liftLimitSwitchMin; //at the bottom of the lift
 	DigitalInput *liftLimitSwitchMax; //at the top of the lift
 	Joystick *joystick; //used to enter and exit the holding position state
@@ -47,6 +50,9 @@ private:
 	void SetLiftMotor(float val)
 	{
 		liftMotor->Set(val);
+#if BUILD_VERSION == COMPETITION
+		liftMotor2->Set(val);
+#endif
 	}
 
 	float DistToSetpoint()
@@ -150,12 +156,21 @@ private:
 					{
 						pidPosSetPoint = SP_RANGE_FRACTION*maxLiftEncDist; //go to the midpoint of the range
 						controlLift->SetSetpoint(pidPosSetPoint);
+#if BUILD_VERSION == COMPETITION
+						controlLift2->SetSetpoint(pidPosSetPoint);
+#endif
 						controlLift->Enable();
+#if BUILD_VERSION == COMPETITION
+						controlLift2->Enable();
+#endif
 					}
 
 					if(exitHoldCommand)
 					{
 						controlLift->Disable();
+#if BUILD_VERSION == COMPETITION
+						controlLift2->Disable();
+#endif
 						motorSpeed = -MOTOR_SPEED_DOWN;
 						liftState = lowering;
 						SetLiftMotor(motorSpeed);
@@ -177,7 +192,7 @@ private:
 		SmartDashboard::PutString("DB/String 4", myString);
 		sprintf(myString, "maxLiftEncDist: %f\n", maxLiftEncDist);
 		SmartDashboard::PutString("DB/String 5", myString);
-		sprintf(myString, "encoder distance: %f\n", liftEncoder->GetDistance());
+		sprintf(myString, "enc dist: %f\n", liftEncoder->GetDistance());
 		SmartDashboard::PutString("DB/String 6", myString);
 		sprintf(myString, "pid: %d\n", controlLift->IsEnabled());
 		SmartDashboard::PutString("DB/String 7", myString);
@@ -197,16 +212,25 @@ public:
 	{
 #if BUILD_VERSION == COMPETITION
 		liftMotor = new CANTalon(CHAN_LIFT_MOTOR);
+		liftMotor2 = new CANTalon(CHAN_LIFT_MOTOR2);
 #else
 		liftMotor = new CANJaguar(CHAN_LIFT_MOTOR);
+		liftMotor2 = new CANJaguar(CHAN_LIFT_MOTOR2);
 #endif
 		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_A, CHAN_LIFT_ENCODER_B, false, Encoder::EncodingType::k4X);
 		liftEncoder->SetDistancePerPulse(LIFT_ENCODER_DIST_PER_PULSE);
 		liftEncoder->SetPIDSourceParameter(liftEncoder->kDistance);
+#if BUILD_VERSION == COMPETITION
+		liftEncoder->SetReverseDirection(true);
+#endif
 		controlLift = new PIDController(PID_P, PID_I, PID_D, liftEncoder, liftMotor);
 		controlLift->SetContinuous(true); //treat input to controller as continuous; true by default
 		controlLift->SetOutputRange(PID_OUT_MIN, PID_OUT_MAX);
 		controlLift->Disable(); //do not enable until in holding position mode
+		controlLift2 = new PIDController(PID_P, PID_I, PID_D, liftEncoder, liftMotor2);
+		controlLift2->SetContinuous(true); //treat input to controller as continuous; true by default
+		controlLift2->SetOutputRange(PID_OUT_MIN, PID_OUT_MAX);
+		controlLift2->Disable(); //do not enable until in holding position mode
 		liftLimitSwitchMin = new DigitalInput(CHAN_LIFT_LOW_LS);
 		liftLimitSwitchMax = new DigitalInput(CHAN_LIFT_HIGH_LS);
 		joystick = new Joystick(CHAN_JS);
@@ -214,9 +238,11 @@ public:
 
 	~Robot()
 	{
-		delete liftMotor;
 		delete liftEncoder;
+		delete liftMotor;
+		delete liftMotor2;
 		delete controlLift;
+		delete controlLift2;
 		delete liftLimitSwitchMin;
 		delete liftLimitSwitchMax;
 		delete joystick;

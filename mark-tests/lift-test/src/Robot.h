@@ -11,7 +11,7 @@
 
 #define PRACTICE 0
 #define COMPETITION 1
-#define BUILD_VERSION PRACTICE
+#define BUILD_VERSION COMPETITION
 
 #define CHAN_LIFT_ENCODER_A 5 //dio
 #define CHAN_LIFT_ENCODER_B 4 //dio
@@ -22,6 +22,7 @@
 #define CHAN_LIFT_HIGH_LS 2 //dio
 
 #define CHAN_LIFT_MOTOR 12 //can
+#define CHAN_LIFT_MOTOR2 14 // can - MLL added
 //
 //convention in the code is the a negative motor speed is down and a positive motor speed is up
 #define FWD 1 //multiply by the motor set value to set the direction in SetLiftMotor
@@ -32,8 +33,8 @@
 #define BUT_JS_ENT_POS_HOLD 1 //enter position holding state
 #define BUT_JS_EXIT_POS_HOLD 2 //exit position holding state
 
-#define MOTOR_SPEED_UP 0.4 //unsigned speed
-#define MOTOR_SPEED_DOWN 0.1 //unsigned speed
+#define MOTOR_SPEED_UP 0.3 //unsigned speed
+#define MOTOR_SPEED_DOWN 0.2 //unsigned speed
 #define MOTOR_SPEED_STOP 0.0
 
 //#define PID_POS_TOL 25.0; //must be within this times the encoder distance per pulse to be at the target
