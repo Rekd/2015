@@ -7,13 +7,19 @@
 
 #include "LiftSystem.h"
 
-LiftSystem::LiftSystem(CANSpeedController *pForkMotor, CANSpeedController *pLiftMotor, CANSpeedController *pLeftIntakeMotor, CANSpeedController *pRightIntakeMotor,
+//for debugging
+char myString[64];
+//sprintf(myString, "liftDir: %f\n", liftDir);
+//SmartDashboard::PutString("DB/String 0", myString);
+
+LiftSystem::LiftSystem(CANSpeedController *pForkMotor, CANSpeedController *pLiftMotorBack, CANSpeedController *pLiftMotorFront, CANSpeedController *pLeftIntakeMotor, CANSpeedController *pRightIntakeMotor,
 		DigitalInput *pForkLimitInner, DigitalInput *pForkLimitOuter, DigitalInput *pLiftLimitLow, DigitalInput *pLiftLimitHigh,
 		Joystick *pLiftSysJoystick)
 {
 	//assign objects
 	forkMotor = pForkMotor;
-	liftMotor = pLiftMotor;
+	liftMotorBack = pLiftMotorBack;
+	liftMotorFront = pLiftMotorFront;
 	leftIntakeMotor = pLeftIntakeMotor;
 	rightIntakeMotor = pRightIntakeMotor;
 	forkLimitInner = pForkLimitInner;
@@ -23,8 +29,13 @@ LiftSystem::LiftSystem(CANSpeedController *pForkMotor, CANSpeedController *pLift
 	liftSysJoystick = pLiftSysJoystick;
 
 	//initialize local variables
-	liftSpeed = ZERO_FL; //start with the lift no moving
+	liftDir = ZERO_FL; //lift stopped on initialization
 	TurnIntakesOff(); //this initializes intakesOn
+	forksIn = false;
+	forksOut = false;
+	atTop = false;
+	//times are initialized when needed
+
 }
 
 LiftSystem::~LiftSystem()
@@ -64,11 +75,15 @@ void LiftSystem::SetForkMotor(float val)
 
 void LiftSystem::SetLiftMotor(float val)
 {
-	liftMotor->Set(LIFT_MOTOR_REV_STATE*val);
+	liftMotorBack->Set(LIFT_MOTOR_REV_STATE*val);
+	liftMotorFront->Set(LIFT_MOTOR_REV_STATE*val);
 }
 
 bool  LiftSystem::CheckForkMotorCurrentSpike()
 {
+	sprintf(myString, "forkCur: %f\n", forkMotor->GetOutputCurrent());
+	SmartDashboard::PutString("DB/String 0", myString);
+
 	if (forkMotor->GetOutputCurrent() > FORK_CURRENT_LIMIT)
 		return(true);
 	else
@@ -77,6 +92,11 @@ bool  LiftSystem::CheckForkMotorCurrentSpike()
 
 bool LiftSystem::CheckInakeMotorsCurrentSpike()
 {
+	sprintf(myString, "lInCur: %f\n", leftIntakeMotor->GetOutputCurrent());
+	SmartDashboard::PutString("DB/String 1", myString);
+	sprintf(myString, "rInCur: %f\n", leftIntakeMotor->GetOutputCurrent());
+	SmartDashboard::PutString("DB/String 2", myString);
+
 	if ((leftIntakeMotor->GetOutputCurrent() > INTAKE_CURRENT_LIMIT) || (rightIntakeMotor->GetOutputCurrent() > INTAKE_CURRENT_LIMIT))
 		return(true);
 	else
@@ -106,13 +126,13 @@ void LiftSystem::TurnIntakesOff()
 void LiftSystem::Update()
 {
 	//intakes
-	if(IsButtonPressed(INTAKE_BUTTON))
+	if(IsButtonPressed(INTAKES_ON_BUTTON))
 	{
-		intakesOn = !intakesOn; //(off to on) or (on to off)
-		if(intakesOn)
-			TurnIntakesOn();
-		else
-			TurnIntakesOff();
+		TurnIntakesOn();
+	}
+	if(IsButtonPressed(INTAKES_OFF_BUTTON))
+	{
+		TurnIntakesOff();
 	}
 	if(CheckInakeMotorsCurrentSpike())
 		TurnIntakesOff();
@@ -120,27 +140,77 @@ void LiftSystem::Update()
 	//forks
 	//
 	//manual control
-	if (liftSysJoystick->GetRawButton(BUT_JS_OUT) && !GetForkLimitSwitchOuter())  // move outwards
-		SetForkMotor(FORK_MOTOR_SPEED_OUT);
-	else if(liftSysJoystick->GetRawButton(BUT_JS_IN) && !GetForkLimitSwitchInner())  // move inwards
+	//
+	//button input
+	if(IsButtonPressed(BUT_FORKS_IN))
+	{
+		forksIn = true;
+		forksOut = false; //do not allow conflicting fork commands
 		SetForkMotor(-FORK_MOTOR_SPEED_IN);
-	else
-		SetForkMotor(MOTOR_STOP); //stop
+	}
+	if(IsButtonPressed(BUT_FORKS_OUT))
+	{
+		forksOut = true;
+		forksIn = false; //do not allow conflicting fork commands
+		SetForkMotor(FORK_MOTOR_SPEED_OUT);
+	}
+	if(IsButtonPressed(BUT_FORKS_STOP))
+	{
+		forksOut = false;
+		forksIn = false; //do not allow conflicting fork commands
+		//motor set to stop below
+	}
+
+	if(!forksOut && !forksIn)
+	{
+		SetForkMotor(MOTOR_STOP);
+	}
+	//
+	//limit switches
+	if(GetForkLimitSwitchOuter())
+	{
+		forksOut = false;
+	}
+	if(GetForkLimitSwitchInner())
+	{
+		forksIn = false;
+	}
+	//
 	//check for current spike
 	if (CheckForkMotorCurrentSpike())
+	{
 		SetForkMotor(MOTOR_STOP);
+		forksIn= false;
+		forksOut = false;
+	}
 
 	//lift
 	//
-	//either joystick direction moves the lift upward; can not actively move the lift down
-	//not moving the lift upwards moves it down by gravity
-	liftSpeed = abs(liftSysJoystick->GetY()) * LIFT_MOTOR_SPEED_UP;
+	//prevent bouncing at the top
+	if(GetLiftLimitSwitchHigh())
+	{
+		atTop = true;
+		clock_gettime(CLOCK_REALTIME, &startTimeAtTop);
+	}
+	//test if sufficient duration from trip of upper limit switch has passed
+	if(atTop)
+	{
+		clock_gettime(CLOCK_REALTIME, &curTime);
+		timeDiffInSec = (curTime.tv_sec - startTimeAtTop.tv_sec) + SEC_IN_NANOSEC*(curTime.tv_nsec - startTimeAtTop.tv_nsec);
+
+		if(timeDiffInSec > AT_TOP_LIFT_DUR)
+			atTop = false;
+	}
+
+	liftDir = liftSysJoystick->GetY();
 	//Filter deadband
-	if (liftSpeed < LIFT_DB_HIGH)
-		liftSpeed = ZERO_FL;
+	if ((liftDir > LIFT_DB_LOW) && (liftDir < LIFT_DB_HIGH))
+		liftDir = ZERO_FL;
 	//manual control
-	if ((liftSpeed > ZERO_FL) && !GetLiftLimitSwitchHigh())  // move up
-		SetLiftMotor(liftSpeed);
+	if ((liftDir > ZERO_FL) && !GetLiftLimitSwitchHigh() && !atTop)  // move up
+		SetLiftMotor(LIFT_MOTOR_SPEED_UP);
+	else if((liftDir < ZERO_FL) && !GetLiftLimitSwitchLow())  // move down
+		SetLiftMotor(-LIFT_MOTOR_SPEED_DOWN);
 	else
 		SetLiftMotor(MOTOR_STOP); //stop
 }

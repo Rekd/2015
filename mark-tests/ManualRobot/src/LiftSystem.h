@@ -13,7 +13,7 @@
 
 class LiftSystem {
 public:
-	LiftSystem(CANSpeedController *pForkMotor, CANSpeedController *pLiftMotor, CANSpeedController *pLeftIntakeMotor, CANSpeedController *pRightIntakeMotor,
+	LiftSystem(CANSpeedController *pForkMotor, CANSpeedController *pLiftMotorBack, CANSpeedController *pLiftMotorFront, CANSpeedController *pLeftIntakeMotor, CANSpeedController *pRightIntakeMotor,
 			DigitalInput *pForkLimitInner, DigitalInput *pForkLimitOuter, DigitalInput *pLiftLimitLow, DigitalInput *pLiftLimitHigh,
 			Joystick *pLiftSysJoystick);
 	virtual ~LiftSystem();
@@ -21,13 +21,21 @@ public:
 
 private:
 // local motors, switches and joysticks
-	CANSpeedController	*forkMotor, *liftMotor, *leftIntakeMotor, *rightIntakeMotor;
+	CANSpeedController	*forkMotor, *liftMotorBack, *liftMotorFront, *leftIntakeMotor, *rightIntakeMotor;
 	DigitalInput *forkLimitInner, *forkLimitOuter, *liftLimitLow, *liftLimitHigh;
 	Joystick    *liftSysJoystick;
 
 // other private variables
-	float liftSpeed;
+	float liftDir; //value from the joystick to determine the lift direction (i.e. forward or backwards or stopped)
 	bool intakesOn;
+	bool forksIn;
+	bool forksOut;
+
+	bool atTop;
+	struct timespec startTimeAtTop;
+	struct timespec curTime;
+	struct timespec timeDiff;
+	double timeDiffInSec;
 
 	//prototypes
 	bool GetForkLimitSwitchInner();
