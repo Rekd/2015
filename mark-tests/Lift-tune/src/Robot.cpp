@@ -7,9 +7,11 @@ class Robot: public IterativeRobot
 {
 private:
 #if BUILD_VERSION == COMPETITION
-		CANTalon *liftMotor;
+		CANTalon *liftMotorBack;
+		CANTalon *liftMotorFront;
 #else
-		CANJaguar *liftMotor;
+		CANJaguar *liftMotorBack;
+		CANJaguar *liftMotorFront;
 #endif
 	Encoder *liftEncoder;
 	DigitalInput *liftLimitSwitchMin;
@@ -32,7 +34,8 @@ private:
 
 	void SetLiftMotor(float val)
 	{
-		liftMotor->Set(LIFT_MOTOR_DIR*val);
+		liftMotorBack->Set(LIFT_MOTOR_DIR*val);
+		liftMotorFront->Set(LIFT_MOTOR_DIR*val);
 	}
 
 	void AutonomousInit()
@@ -96,10 +99,12 @@ private:
 		SmartDashboard::PutString("DB/String 2", myString);
 		sprintf(myString, "jsResEnc %d\n", joystick->GetRawButton(BUT_JS_RES_EN));
 		SmartDashboard::PutString("DB/String 3", myString);
-		sprintf(myString, "curr: %f\n", liftMotor->GetOutputCurrent());
+		sprintf(myString, "backCurr: %f\n", liftMotorBack->GetOutputCurrent());
 		SmartDashboard::PutString("DB/String 4", myString);
-		sprintf(myString, "enc dist: %f\n", liftEncoder->GetDistance()); //encoder distance
+		sprintf(myString, "frCurr: %f\n", liftMotorFront->GetOutputCurrent());
 		SmartDashboard::PutString("DB/String 5", myString);
+		sprintf(myString, "enc dist: %f\n", liftEncoder->GetDistance()); //encoder distance
+		SmartDashboard::PutString("DB/String 6", myString);
 	}
 
 	void TestPeriodic()
@@ -111,9 +116,11 @@ public:
 	Robot()
 	{
 #if BUILD_VERSION == COMPETITION
-		liftMotor = new CANTalon(CHAN_LIFT_MOTOR);
+		liftMotorBack = new CANTalon(CHAN_LIFT_MOTOR_BACK);
+		liftMotorFront = new CANTalon(CHAN_LIFT_MOTOR_FRONT);
 #else
-		liftMotor = new CANJaguar(CHAN_LIFT_MOTOR);
+		liftMotorBack = new CANJaguar(CHAN_LIFT_MOTOR_BACK);
+		liftMotorFront = new CANJaguar(CHAN_LIFT_MOTOR_FRONT);
 #endif
 		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_A, CHAN_LIFT_ENCODER_B, false, Encoder::EncodingType::k4X);
 		liftEncoder->SetDistancePerPulse(LIFT_ENCODER_DIST_PER_PULSE);
@@ -124,7 +131,8 @@ public:
 
 	~Robot()
 	{
-		delete liftMotor;
+		delete liftMotorBack;
+		delete liftMotorFront;
 		delete liftEncoder;
 		delete liftLimitSwitchMin;
 		delete liftLimitSwitchMax;

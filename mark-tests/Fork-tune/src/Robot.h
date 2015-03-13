@@ -10,7 +10,7 @@
 
 #define PRACTICE 0
 #define COMPETITION 1
-#define BUILD_VERSION PRACTICE
+#define BUILD_VERSION COMPETITION
 
 #define CHAN_FORK_MIN_LS 0 //dio, inner limit switch
 #define CHAN_FORK_MAX_LS 1 //dio, outer limit switch
@@ -33,7 +33,7 @@
 #define BUT_JS_OUT 2
 #define BUT_JS_RES_GTC 3 //gear tooth counter
 
-#define MOTOR_SPEED_GO 0.25
+#define MOTOR_SPEED_GO 0.5
 #define MOTOR_SPEED_STOP 0.0
 
 #define STAT_STR_LEN 64 //printing to dashboard
