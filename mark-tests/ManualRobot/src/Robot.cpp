@@ -2,6 +2,7 @@
 #include "Constants.h"
 #include "LiftSystem.h"
 #include "DriveSystem.cpp"
+#include "math.h"
 
 //char myString[64]; //for debugging
 
@@ -13,6 +14,7 @@ bool myOnTarget(PIDController *controller, PIDSource *source)
 	return (fabs(tolerance) < POS_TOL_COMP); // a tuned value
 }
 
+#if 0 // piece-wise
 float velocityProfileX(float x)
 {
 	if(x > -0.5 && x < 0.5)
@@ -20,6 +22,24 @@ float velocityProfileX(float x)
 	else
 		return (1.5*(x-0.5) + 0.25);
 }
+
+#endif
+
+// log-based profile
+float velocityProfileX(float x)
+{
+	int sign;
+
+	if (x == ZERO_FL)
+		return(ZERO_FL);
+
+	if (x > 0.0)
+		sign = 1.0;
+	else
+		sign = -1.0;
+	return(sign * (log10(fabs(x) + 0.1) + 1.0));
+}
+
 
 float velocityProfileY(float y)
 {
@@ -68,13 +88,16 @@ private:
 	DigitalInput *forkLimitOuter;
 	DigitalInput *liftLimitLow; //at the bottom of the lift
 	DigitalInput *liftLimitHigh; //at the top of the lift
+	Encoder *liftEncoder;
+	PIDController *controlLiftBack;
+	PIDController *controlLiftFront;
 	Joystick *liftSysJoystick;
 	LiftSystem *liftSystem;
 
-	// Linear PID controllers
+	// Linear Drive PID controllers
 	PIDController *controlPosRight;
 	PIDController *controlPosLeft;
-	enum {start, drive, hold} autonomousDriveState;
+	enum {start, fork_in, drive, release, hold} autonomousDriveState;
 
 	void RobotInit()
 	{
@@ -83,17 +106,27 @@ private:
 
 	void AutonomousInit()
 	{
-		controlPosLeft->Enable();
-		controlPosLeft->SetSetpoint(AUTONMOUS_MOVE_DIST);
-		controlPosRight->Enable();
-		controlPosRight->SetSetpoint(-AUTONMOUS_MOVE_DIST);
-		autonomousDriveState = drive;
+
+		liftSystem->StartForksInAuto();  // start the forks moving in
+		autonomousDriveState = fork_in;
 	}
 
 	void AutonomousPeriodic()
 	{
 		char myString[64];
 
+		liftSystem->UpdateAuto();
+		if (autonomousDriveState == fork_in)
+		{
+			if (!(liftSystem->CheckForksIn()))  // forks have stopped - move
+			{
+				controlPosLeft->Enable();
+				controlPosLeft->SetSetpoint(AUTONMOUS_MOVE_DIST);
+				controlPosRight->Enable();
+				controlPosRight->SetSetpoint(-AUTONMOUS_MOVE_DIST);
+				autonomousDriveState = drive;
+			}
+		}
 		if (autonomousDriveState == drive)
 		{
     		sprintf(myString, "Driving\n");
@@ -111,7 +144,8 @@ private:
 			{
 				controlPosLeft->Disable();  // disable the drive PID controllers
 				controlPosRight->Disable();
-				autonomousDriveState = hold;
+				liftSystem->StartForksOutAuto();  // start the forks moving in
+				autonomousDriveState = release;
 			}
 		}
 	}
@@ -144,6 +178,7 @@ private:
 		//map to velocity profile
 		driveX = velocityProfileX(driveX);
 		driveY = velocityProfileY(driveY);
+
 
 		//Give drive instructions
 		driveSystem->SetDriveInstruction(driveY * MAX_RPS, driveX * MAX_RPS);
@@ -201,12 +236,27 @@ public:
 		forkLimitOuter = new DigitalInput(CHAN_FORK_MAX_LS);
 		liftLimitLow = new DigitalInput(CHAN_LIFT_LOW_LS);
 		liftLimitHigh = new DigitalInput(CHAN_LIFT_HIGH_LS);
+		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_A, CHAN_LIFT_ENCODER_B, false, Encoder::EncodingType::k4X);
+		liftEncoder->SetDistancePerPulse(LIFT_ENCODER_DIST_PER_PULSE);
+		liftEncoder->SetReverseDirection(true);
+		liftEncoder->SetPIDSourceParameter(liftEncoder->kDistance);
+		liftEncoder->Reset(); //zero at the starting position
+		controlLiftBack = new PIDController(LIFT_PROPORTIONAL_TERM, LIFT_INTEGRAL_TERM, LIFT_DIFFERENTIAL_TERM, liftEncoder, liftMotorBack);
+		controlLiftBack->SetContinuous(true); //treat input to controller as continuous; true by default
+		controlLiftBack->SetOutputRange(LIFT_PID_OUT_MIN, LIFT_PID_OUT_MAX);
+		controlLiftBack->Disable(); //hold position is off at initialization
+		controlLiftFront = new PIDController(LIFT_PROPORTIONAL_TERM, LIFT_INTEGRAL_TERM, LIFT_DIFFERENTIAL_TERM, liftEncoder, liftMotorFront);
+		controlLiftFront->SetContinuous(true); //treat input to controller as continuous; true by default
+		controlLiftFront->SetOutputRange(LIFT_PID_OUT_MIN, LIFT_PID_OUT_MAX);
+		controlLiftFront->Disable(); //hold position is off at initialization
+
 		liftSysJoystick = new Joystick(CHAN_LIFT_SYS_JS);
 		liftSystem = new LiftSystem(forkMotor, liftMotorBack, liftMotorFront, leftIntakeMotor, rightIntakeMotor,
 				forkLimitInner, forkLimitOuter, liftLimitLow, liftLimitHigh,
+				liftEncoder, controlLiftBack, controlLiftFront,
 				liftSysJoystick);
 
-		// Linear PID controllers
+		// Linear Drive PID controllers
         controlPosLeft = new PIDController(POS_PROPORTIONAL_TERM, POS_INTEGRAL_TERM, POS_DIFFERENTIAL_TERM, leftEncoder, leftDrive);
         controlPosLeft->SetContinuous(true);
         controlPosLeft->SetOutputRange(AUTONOMOUS_MAX_REVERSE_SPEED, AUTONOMOUS_MAX_FORWARD_SPEED);
@@ -240,10 +290,13 @@ public:
 		delete forkLimitOuter;
 		delete liftLimitLow;
 		delete liftLimitHigh;
+		delete liftEncoder;
+		delete controlLiftBack;
+		delete controlLiftFront;
 		delete liftSysJoystick;
 		delete liftSystem;
 
-		// Linear PID controllers
+		// Linear Drive PID controllers
 		delete controlPosLeft;
 		delete controlPosRight;
 	}

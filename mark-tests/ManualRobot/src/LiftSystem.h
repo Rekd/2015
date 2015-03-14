@@ -15,19 +15,30 @@ class LiftSystem {
 public:
 	LiftSystem(CANSpeedController *pForkMotor, CANSpeedController *pLiftMotorBack, CANSpeedController *pLiftMotorFront, CANSpeedController *pLeftIntakeMotor, CANSpeedController *pRightIntakeMotor,
 			DigitalInput *pForkLimitInner, DigitalInput *pForkLimitOuter, DigitalInput *pLiftLimitLow, DigitalInput *pLiftLimitHigh,
+			Encoder *pLiftEncoder, PIDController *pControlLiftBack, PIDController *pControlLiftFront,
 			Joystick *pLiftSysJoystick);
 	virtual ~LiftSystem();
 	void Update();
+	void StartForksInAuto();
+	void StartForksOutAuto();
+	bool CheckForksIn();
+	void UpdateAuto();
 
 private:
 // local motors, switches and joysticks
 	CANSpeedController	*forkMotor, *liftMotorBack, *liftMotorFront, *leftIntakeMotor, *rightIntakeMotor;
 	DigitalInput *forkLimitInner, *forkLimitOuter, *liftLimitLow, *liftLimitHigh;
+	Encoder *liftEncoder;
+	PIDController *controlLiftBack, *controlLiftFront;
 	Joystick    *liftSysJoystick;
 
 // other private variables
 	float liftDir; //value from the joystick to determine the lift direction (i.e. forward or backwards or stopped)
+	float curLiftPos; //current lift encoder position
+	bool liftPidOn;
+
 	bool intakesOn;
+
 	bool forksIn;
 	bool forksOut;
 
@@ -38,6 +49,7 @@ private:
 	double timeDiffInSec;
 
 	//prototypes
+	float DistToSetpoint();
 	bool GetForkLimitSwitchInner();
 	bool GetForkLimitSwitchOuter();
 	bool GetLiftLimitSwitchLow();
