@@ -75,6 +75,7 @@
 #define INTEGRAL_TERM               		0.1f
 #define DIFFERENTIAL_TERM           	0.001f
 
+#define MAX_DRIVE_SPEED						0.5 //maximum allowable set speed for the drive system (used in the velocity profile calculation)
 #define MAX_RPS								8
 #define DRIVE_DB_LOW 						-0.05 //drive deadband low limit
 #define DRIVE_DB_HIGH 						0.05 //drive deadband high limit
@@ -88,7 +89,7 @@
 #define AUTONMOUS_MOVE_DIST					-5.73*1.15 //tire revolutions; for 4 in wheels ~6 feet; - for backwards, + for forwards
 
 //current monitoring
-#define FORK_CURRENT_LIMIT					10.0
+#define FORK_CURRENT_LIMIT					12.0
 #define INTAKE_CURRENT_LIMIT				0.35
 
 //non-drive motor configuration

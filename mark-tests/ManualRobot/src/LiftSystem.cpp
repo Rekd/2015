@@ -290,11 +290,11 @@ void LiftSystem::UpdateAuto()
 	}
 	//
 	//limit switches
-	if(GetForkLimitSwitchOuter())
+	if ((forksOut) && (GetForkLimitSwitchOuter()))
 	{
 		forksOut = false;
 	}
-	if(GetForkLimitSwitchInner()) //in case miss the tote
+	else if(GetForkLimitSwitchInner()) //in case miss the tote
 	{
 		forksIn = false;
 	}

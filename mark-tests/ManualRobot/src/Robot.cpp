@@ -37,7 +37,7 @@ float velocityProfileX(float x)
 		sign = 1.0;
 	else
 		sign = -1.0;
-	return(sign * (log10(fabs(x) + 0.1) + 1.0));
+	return(MAX_DRIVE_SPEED*(sign * (log10(fabs(x) + 0.1) + 1.0)));
 }
 
 
