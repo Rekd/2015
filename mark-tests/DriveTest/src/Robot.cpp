@@ -104,6 +104,15 @@ private:
 
 		if (y > -0.1 && y < 0.1)
 			y = 0;
+// Adjust sensitivity bands
+		if ((x>-0.5) && (x<0.5))
+			x = x*0.5;
+		else
+			x = 0.25 + ((x-0.5) * 1.5);
+		if ((y>-0.5) && (y<0.5))
+			y = y*0.5;
+		else
+			y = 0.25 + ((y-0.5) * 1.5);
 
 		sprintf(myString, "R enc cnt: %d\n", rightEncoder->Get());
 		SmartDashboard::PutString("DB/String 0", myString);

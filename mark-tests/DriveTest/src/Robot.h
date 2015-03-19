@@ -12,7 +12,7 @@
 
 #define PRACTICE 0
 #define COMPETITION 1
-#define BUILD_VERSION PRACTICE
+#define BUILD_VERSION COMPETITION
 
 #define PID_OFF false
 #define PID_ON true

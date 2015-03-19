@@ -37,7 +37,7 @@ float velocityProfileX(float x)
 		sign = 1.0;
 	else
 		sign = -1.0;
-	return(MAX_DRIVE_SPEED*(sign * (log10(fabs(x) + 0.1) + 1.0)));
+	return(sign * (log10(fabs(x) + 0.1) + 1.0));
 }
 
 
@@ -238,7 +238,9 @@ public:
 		liftLimitHigh = new DigitalInput(CHAN_LIFT_HIGH_LS);
 		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_A, CHAN_LIFT_ENCODER_B, false, Encoder::EncodingType::k4X);
 		liftEncoder->SetDistancePerPulse(LIFT_ENCODER_DIST_PER_PULSE);
+#if BUILD_VER == COMPETITION
 		liftEncoder->SetReverseDirection(true);
+#endif
 		liftEncoder->SetPIDSourceParameter(liftEncoder->kDistance);
 		liftEncoder->Reset(); //zero at the starting position
 		controlLiftBack = new PIDController(LIFT_PROPORTIONAL_TERM, LIFT_INTEGRAL_TERM, LIFT_DIFFERENTIAL_TERM, liftEncoder, liftMotorBack);
