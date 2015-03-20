@@ -66,18 +66,30 @@
 #define WHEEL_DIAMETER						4.0L
 #define WHEEL_CIRCUMFERENCE         		(PI*WHEEL_DIAMETER)
 #define DRIVE_ENCODER_CPR          		 	360
-#if 0
-#define PROPORTIONAL_TERM          			0.7f
-#define INTEGRAL_TERM               		1.3f
-#define DIFFERENTIAL_TERM          			0.1f
-#endif
+
+//#define PROPORTIONAL_TERM          			0.7f
+//#define INTEGRAL_TERM               		1.3f
+//#define DIFFERENTIAL_TERM          			0.1f
+
+
+#if BUILD_VER == PRACTICE
 #define PROPORTIONAL_TERM           		0.005f
 #define INTEGRAL_TERM               		0.1f
 #define DIFFERENTIAL_TERM           	0.001f
+#endif
+
+#if BUILD_VER == COMPETITION
+#define PROPORTIONAL_TERM           		0.005f
+#define INTEGRAL_TERM               		0.1f
+#define DIFFERENTIAL_TERM           	0.001f
+#endif
 
 #define MAX_RPS								8
 #define DRIVE_DB_LOW 						-0.05 //drive deadband low limit
 #define DRIVE_DB_HIGH 						0.05 //drive deadband high limit
+#define STEERING_DB_LOW 						-0.05 //drive deadband low limit
+#define STEERING_DB_HIGH 						0.05 //drive deadband high limit
+
 #define PID_OFF 							false
 #define PID_ON								true
 #define PID_CONFIG							PID_ON
@@ -91,7 +103,7 @@
 #if BUILD_VER == COMPETITION
 #define FORK_CURRENT_LIMIT					10.0
 #else
-#define FORK_CURRENT_LIMIT					14.0
+#define FORK_CURRENT_LIMIT					25.0
 #endif
 
 #define INTAKE_CURRENT_LIMIT				0.35
@@ -123,6 +135,7 @@
 #define LIFT_MOTOR_SPEED_DOWN				0.2 //unsigned, set sign when used
 #define LIFT_DB_LOW 						-0.1 //lift deadband low limit
 #define LIFT_DB_HIGH 						0.1 //lift deadband high limit
-#define AT_TOP_LIFT_DUR						2.0 //duartion in seconds that lift up motion will be prevented if the top limit switch is hit
+#define AT_TOP_LIFT_DUR						0.5 //duartion in seconds that lift up motion will be prevented if the top limit switch is hit
 
+#define VELOCITY_SCALE  					0.5
 #endif

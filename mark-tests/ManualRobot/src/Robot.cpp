@@ -4,7 +4,7 @@
 #include "DriveSystem.cpp"
 #include "math.h"
 
-//char myString[64]; //for debugging
+char myString[64]; //for debugging
 
 //local function
 bool myOnTarget(PIDController *controller, PIDSource *source)
@@ -37,7 +37,7 @@ float velocityProfileX(float x)
 		sign = 1.0;
 	else
 		sign = -1.0;
-	return(sign * (log10(fabs(x) + 0.1) + 1.0));
+	return(sign * VELOCITY_SCALE * (log10(fabs(x) + 0.1) + 1.0));
 }
 
 
@@ -168,9 +168,11 @@ private:
 		//get driver controls values
 		driveX = -steeringWheel->GetX();
 		driveY = driveJoystick->GetY();
+		sprintf(myString, "J: %5.3f|%5.3f\n", driveX, driveY);
+		SmartDashboard::PutString("DB/String 0", myString);
 
 		//Filter deadband
-		if (driveX > DRIVE_DB_LOW && driveX < DRIVE_DB_HIGH)
+		if (driveX > STEERING_DB_LOW && driveX < STEERING_DB_HIGH)
 			driveX = ZERO_FL;
 		if (driveY > DRIVE_DB_LOW && driveY < DRIVE_DB_HIGH)
 			driveY = ZERO_FL;
@@ -180,9 +182,21 @@ private:
 		driveY = velocityProfileY(driveY);
 
 
+		sprintf(myString, "D: %5.3f|%5.3f\n", driveX, driveY);
+		SmartDashboard::PutString("DB/String 1", myString);
+
 		//Give drive instructions
 		driveSystem->SetDriveInstruction(driveY * MAX_RPS, driveX * MAX_RPS);
 		driveSystem->Update();
+
+		sprintf(myString, "SP: %5.3f|%5.3f\n", driveSystem->GetLeftPIDSetpoint(), driveSystem->GetRightPIDSetpoint());
+		SmartDashboard::PutString("DB/String 2", myString);
+		sprintf(myString, "Out: %5.3f|%5.3f\n", driveSystem->GetLeftPIDOutput(), driveSystem->GetRightPIDOutput());
+		SmartDashboard::PutString("DB/String 3", myString);
+		sprintf(myString, "F curr: %f\n", forkMotor->GetOutputCurrent());
+		SmartDashboard::PutString("DB/String 4", myString);
+		sprintf(myString, "L curr: %5.3f|%5.3f\n", liftMotorBack->GetOutputCurrent(), liftMotorBack->GetOutputCurrent());
+		SmartDashboard::PutString("DB/String 5", myString);
 
 		//Give lift instructions
 		liftSystem->Update();

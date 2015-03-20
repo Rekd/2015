@@ -84,6 +84,15 @@ class DriveSystem {
     	return(controlRight->Get());
     }
 
+    float GetLeftPIDSetpoint(){
+    	return(controlLeft->GetSetpoint());
+    }
+
+
+    float GetRightPIDSetpoint(){
+    	return(controlRight->GetSetpoint());
+    }
+
     float GetLeftPIDError(){
     	return(controlLeft->GetError());
     }
@@ -140,17 +149,13 @@ class DriveSystem {
     
     float GetLeftDriveMotorSpeed() {
         double speed = velocity;
-        if (angle < -.05f || angle > .05f) {
-            speed += angle * .7f;
-        }
+         speed += angle * .7f;
         return speed;
     }
     
     float GetRightDriveMotorSpeed() {
         double speed = velocity;
-        if (angle < -.05f || angle > .05f) {
-            speed -= angle * .7f;
-        }
+        speed -= angle * .7f;
         return speed;
     }
 
@@ -171,11 +176,7 @@ class DriveSystem {
     void SetMotorSpeedLeft(float speed) {
     	char myString[64];
 
-
         if (pidDrive) {
-            if (fabs(speed) < 0.5) {
-                speed = 0;
-            }
     		sprintf(myString, "pid SP L: %5.2f\n", -speed);
     		SmartDashboard::PutString("DB/String 8", myString);
             controlLeft->SetSetpoint(-speed);
@@ -190,9 +191,6 @@ class DriveSystem {
     	char myString[64];
 
         if (pidDrive) {
-            if (fabs(speed) < 0.5) {
-                speed = 0;
-            }
     		sprintf(myString, "pid SP R: %5.2f\n", speed);
     		SmartDashboard::PutString("DB/String 9", myString);
             controlRight->SetSetpoint(speed);

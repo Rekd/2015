@@ -8,7 +8,7 @@
 #include "LiftSystem.h"
 
 //for debugging
-char myString[64];
+//char myString[64];
 //sprintf(myString, "liftDir: %f\n", liftDir);
 //SmartDashboard::PutString("DB/String 0", myString);
 
@@ -95,8 +95,8 @@ void LiftSystem::SetLiftMotor(float val)
 
 bool  LiftSystem::CheckForkMotorCurrentSpike()
 {
-	sprintf(myString, "forkCur: %f\n", forkMotor->GetOutputCurrent());
-	SmartDashboard::PutString("DB/String 0", myString);
+//	sprintf(myString, "forkCur: %f\n", forkMotor->GetOutputCurrent());
+//	SmartDashboard::PutString("DB/String 0", myString);
 
 	if (forkMotor->GetOutputCurrent() > FORK_CURRENT_LIMIT)
 		return(true);
@@ -106,10 +106,10 @@ bool  LiftSystem::CheckForkMotorCurrentSpike()
 
 bool LiftSystem::CheckInakeMotorsCurrentSpike()
 {
-	sprintf(myString, "lInCur: %f\n", leftIntakeMotor->GetOutputCurrent());
-	SmartDashboard::PutString("DB/String 1", myString);
-	sprintf(myString, "rInCur: %f\n", leftIntakeMotor->GetOutputCurrent());
-	SmartDashboard::PutString("DB/String 2", myString);
+//	sprintf(myString, "lInCur: %f\n", leftIntakeMotor->GetOutputCurrent());
+//	SmartDashboard::PutString("DB/String 1", myString);
+//	sprintf(myString, "rInCur: %f\n", leftIntakeMotor->GetOutputCurrent());
+//	SmartDashboard::PutString("DB/String 2", myString);
 
 	if ((leftIntakeMotor->GetOutputCurrent() > INTAKE_CURRENT_LIMIT) || (rightIntakeMotor->GetOutputCurrent() > INTAKE_CURRENT_LIMIT))
 		return(true);
@@ -229,6 +229,7 @@ void LiftSystem::Update()
 			controlLiftFront->SetSetpoint(curLiftPos);
 			liftPidOn = true;
 		}
+/*
 		sprintf(myString, "pid should be on");
 		SmartDashboard::PutString("DB/String 0", myString);
 		sprintf(myString, "new SP: %f\n", controlLiftBack->GetSetpoint());
@@ -237,6 +238,7 @@ void LiftSystem::Update()
 		SmartDashboard::PutString("DB/String 2", myString);
 		sprintf(myString, "Dist to SP: %f\n", DistToSetpoint());
 		SmartDashboard::PutString("DB/String 3", myString);
+*/
 
 		liftDir = ZERO_FL;
 	}
@@ -248,8 +250,8 @@ void LiftSystem::Update()
 			controlLiftFront->Disable();
 			liftPidOn = false;
 		}
-		sprintf(myString, "pid should be off");
-		SmartDashboard::PutString("DB/String 0", myString);
+//		sprintf(myString, "pid should be off");
+//		SmartDashboard::PutString("DB/String 0", myString);
 
 		//manual control
 		if ((liftDir > ZERO_FL) && !GetLiftLimitSwitchHigh() && !atTop)  // move up
