@@ -37,19 +37,28 @@
 #define CHAN_STEERING_WHEEL					1
 #define CHAN_LIFT_SYS_JS					2
 
-//buttons
+//lift joystick buttons
 #define BUT_FORKS_IN						5
 #define BUT_FORKS_OUT						4
 #define BUT_FORKS_STOP						1
 #define INTAKES_ON_BUTTON					2
 #define INTAKES_OFF_BUTTON					3
 
-//positional PID parameters
+//drive wheel buttons
+#define DRIVE_NUDGE_LEFT_BUTTON				5
+#define DRIVE_NUDGE_RIGHT_BUTTON			6
+
+//positional PID parameters for autonomous
 #define POS_ERR_TOL							0.05 //this is a percentage
 #define POS_TOL_COMP						0.0025 //this is a tuned value
 #define POS_PROPORTIONAL_TERM          		0.8f
 #define POS_INTEGRAL_TERM               	0.05f
 #define POS_DIFFERENTIAL_TERM          		0.0f
+
+//positional PID parameters for nudging
+#define POS_NUDGE_PROPORTIONAL_TERM          0.8f
+#define POS_NUDGE_INTEGRAL_TERM              0.05f
+#define POS_NUDGE_DIFFERENTIAL_TERM          0.0f
 
 //lift PID parameters
 #define LIFT_ENCODER_RESOLUTION 			1024
@@ -63,6 +72,7 @@
 //drive control
 #define ENCODER_RESOLUTION					1024.0
 #define ENCODER_DIST_PER_PULSE				(1.0/ENCODER_RESOLUTION)
+#define HALF_INCH_OFFSET					0.056 //this number of revolutions is a 1/2 in of vertical lift distance
 #define WHEEL_DIAMETER						4.0L
 #define WHEEL_CIRCUMFERENCE         		(PI*WHEEL_DIAMETER)
 #define DRIVE_ENCODER_CPR          		 	360
@@ -87,8 +97,8 @@
 #define MAX_RPS								8
 #define DRIVE_DB_LOW 						-0.05 //drive deadband low limit
 #define DRIVE_DB_HIGH 						0.05 //drive deadband high limit
-#define STEERING_DB_LOW 						-0.05 //drive deadband low limit
-#define STEERING_DB_HIGH 						0.05 //drive deadband high limit
+#define STEERING_DB_LOW 						-0.15 //drive deadband low limit
+#define STEERING_DB_HIGH 						0.15 //drive deadband high limit
 
 #define PID_OFF 							false
 #define PID_ON								true
@@ -98,6 +108,11 @@
 #define AUTONOMOUS_MAX_FORWARD_SPEED 		0.6 //signed
 #define AUTONOMOUS_MAX_REVERSE_SPEED		-0.6 //signed
 #define AUTONMOUS_MOVE_DIST					-5.73*1.15 //tire revolutions; for 4 in wheels ~6 feet; - for backwards, + for forwards
+
+//nudge
+#define NUDGE_MAX_FORWARD_SPEED				0.4 //signed
+#define NUDGE_MAX_REVERSE_SPEED				-0.4 //signed
+#define NUDGE_MOVE_DIST						0.25 //tire revolutions right is pos, left is neg
 
 //current monitoring
 #if BUILD_VER == COMPETITION
@@ -130,11 +145,11 @@
 #if BUILD_VER == COMPETITION
 #define LIFT_MOTOR_SPEED_UP					0.6 //unsigned, set sign when used
 #else
-#define LIFT_MOTOR_SPEED_UP					0.4 //unsigned, set sign when used
+#define LIFT_MOTOR_SPEED_UP					0.25 //unsigned, set sign when used
 #endif
 #define LIFT_MOTOR_SPEED_DOWN				0.2 //unsigned, set sign when used
-#define LIFT_DB_LOW 						-0.1 //lift deadband low limit
-#define LIFT_DB_HIGH 						0.1 //lift deadband high limit
+#define LIFT_DB_LOW 						-0.2 //lift deadband low limit
+#define LIFT_DB_HIGH 						0.2 //lift deadband high limit
 #define AT_TOP_LIFT_DUR						0.5 //duartion in seconds that lift up motion will be prevented if the top limit switch is hit
 
 #define VELOCITY_SCALE  					0.5

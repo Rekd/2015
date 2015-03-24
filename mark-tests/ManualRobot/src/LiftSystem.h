@@ -35,6 +35,7 @@ private:
 // other private variables
 	float liftDir; //value from the joystick to determine the lift direction (i.e. forward or backwards or stopped)
 	float curLiftPos; //current lift encoder position
+	float targetLiftPos;
 	bool liftPidOn;
 
 	bool intakesOn;
@@ -42,7 +43,7 @@ private:
 	bool forksIn;
 	bool forksOut;
 
-	bool atTop;
+	bool atTop, atTopHold;
 	struct timespec startTimeAtTop;
 	struct timespec curTime;
 	struct timespec timeDiff;

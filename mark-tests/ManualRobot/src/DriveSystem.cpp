@@ -177,12 +177,12 @@ class DriveSystem {
     	char myString[64];
 
         if (pidDrive) {
-    		sprintf(myString, "pid SP L: %5.2f\n", -speed);
-    		SmartDashboard::PutString("DB/String 8", myString);
+    		//sprintf(myString, "pid SP L: %5.2f\n", -speed);
+    		//SmartDashboard::PutString("DB/String 8", myString);
             controlLeft->SetSetpoint(-speed);
         } else {
-    		sprintf(myString, "setpoint L: %5.2f\n", -speed);
-    		SmartDashboard::PutString("DB/String 8", myString);
+    		//sprintf(myString, "setpoint L: %5.2f\n", -speed);
+    		//SmartDashboard::PutString("DB/String 8", myString);
             m_pscMotorLeft->Set(-speed);
         }
     }
@@ -191,12 +191,12 @@ class DriveSystem {
     	char myString[64];
 
         if (pidDrive) {
-    		sprintf(myString, "pid SP R: %5.2f\n", speed);
-    		SmartDashboard::PutString("DB/String 9", myString);
+    		//sprintf(myString, "pid SP R: %5.2f\n", speed);
+    		//SmartDashboard::PutString("DB/String 9", myString);
             controlRight->SetSetpoint(speed);
         } else {
-    		sprintf(myString, "setpoint R: %5.2f\n", speed);
-    		SmartDashboard::PutString("DB/String 9", myString);
+    		//sprintf(myString, "setpoint R: %5.2f\n", speed);
+    		//SmartDashboard::PutString("DB/String 9", myString);
             m_pscMotorRight->Set(speed);
         }
     }

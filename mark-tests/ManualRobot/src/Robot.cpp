@@ -65,10 +65,17 @@ private:
 	Encoder *rightEncoder;
 	DriveSystem *driveSystem;
 
+	// Linear Drive PID controllers for nudging
+	PIDController *controlPosNudgeRight;
+	PIDController *controlPosNudgeLeft;
+
 	//driver controls
 	Joystick *driveJoystick;
 	Joystick *steeringWheel;
 	float driveX, driveY; //values from driver controls: x from steeringWheel, y from driveJoystick
+
+	//drive nudge flags
+	bool nudgeLeft, nudgeRight;
 
 	//lift system
 #if BUILD_VER == COMPETITION
@@ -94,14 +101,16 @@ private:
 	Joystick *liftSysJoystick;
 	LiftSystem *liftSystem;
 
-	// Linear Drive PID controllers
+	// Linear Drive PID controllers for Autonomous
 	PIDController *controlPosRight;
 	PIDController *controlPosLeft;
 	enum {start, fork_in, drive, release, hold} autonomousDriveState;
 
 	void RobotInit()
 	{
-		//not used
+		CameraServer::GetInstance()->SetQuality(50);
+		//the camera name (ex "cam0") can be found through the roborio web interface
+		CameraServer::GetInstance()->StartAutomaticCapture("cam1");
 	}
 
 	void AutonomousInit()
@@ -155,6 +164,12 @@ private:
 		enteredTelopInit = true;
 		driveSystem = new DriveSystem(leftEncoder, rightEncoder, leftDrive, rightDrive);
 
+		//to disable nudge position control to start
+		controlPosNudgeLeft->Disable();
+		controlPosNudgeRight->Disable();
+		nudgeRight = false;
+		nudgeLeft = false;
+
 		//Initialize PID
 		driveSystem->SetPIDDrive(PID_CONFIG);
 		//Set Wheel Diameter
@@ -165,38 +180,106 @@ private:
 
 	void TeleopPeriodic()
 	{
-		//get driver controls values
-		driveX = -steeringWheel->GetX();
-		driveY = driveJoystick->GetY();
-		sprintf(myString, "J: %5.3f|%5.3f\n", driveX, driveY);
-		SmartDashboard::PutString("DB/String 0", myString);
+		//check for nudge button presses
+		if((steeringWheel->GetRawButton(DRIVE_NUDGE_LEFT_BUTTON)) && (!nudgeLeft && !nudgeRight))
+		{
+			nudgeLeft = true;
+			nudgeRight = false;
+		}
+		if((steeringWheel->GetRawButton(DRIVE_NUDGE_RIGHT_BUTTON)) && (!nudgeLeft && !nudgeRight))
+		{
+			nudgeLeft = false;
+			nudgeRight = true;
+		}
 
-		//Filter deadband
-		if (driveX > STEERING_DB_LOW && driveX < STEERING_DB_HIGH)
-			driveX = ZERO_FL;
-		if (driveY > DRIVE_DB_LOW && driveY < DRIVE_DB_HIGH)
-			driveY = ZERO_FL;
+		if(nudgeLeft)
+		{
+			sprintf(myString, "NL: %d|%d\n", myOnTarget(controlPosNudgeLeft, leftEncoder),
+					myOnTarget(controlPosNudgeRight, rightEncoder));
+			SmartDashboard::PutString("DB/String 7", myString);
 
-		//map to velocity profile
-		driveX = velocityProfileX(driveX);
-		driveY = velocityProfileY(driveY);
+			if(!(controlPosNudgeLeft->IsEnabled()))
+			{
+				driveSystem->SetPIDDrive(false); //disabling main velocity controlled drive system
+				controlPosNudgeLeft->Enable();
+				controlPosNudgeLeft->SetSetpoint(-NUDGE_MOVE_DIST);
+				controlPosNudgeRight->Enable();
+				controlPosNudgeRight->SetSetpoint(-NUDGE_MOVE_DIST);
+			}
+
+			if ((myOnTarget(controlPosNudgeLeft, leftEncoder)) || (myOnTarget(controlPosNudgeRight, rightEncoder)))
+			{
+				controlPosNudgeLeft->Disable();
+				controlPosNudgeRight->Disable();
+				nudgeLeft = false;
+				driveSystem->SetPIDDrive(PID_CONFIG); //enabling main velocity controlled drive system
+			}
+		}
+		else if(nudgeRight)
+		{
+			sprintf(myString, "NR: %d|%d\n", myOnTarget(controlPosNudgeLeft, leftEncoder),
+					myOnTarget(controlPosNudgeRight, rightEncoder));
+			SmartDashboard::PutString("DB/String 7", myString);
+			if(!(controlPosNudgeLeft->IsEnabled()))
+			{
+				driveSystem->SetPIDDrive(false); //disabling main velocity controlled drive system
+				controlPosNudgeLeft->Enable();
+				controlPosNudgeLeft->SetSetpoint(NUDGE_MOVE_DIST);
+				controlPosNudgeRight->Enable();
+				controlPosNudgeRight->SetSetpoint(NUDGE_MOVE_DIST);
+			}
+
+			if ((myOnTarget(controlPosNudgeLeft, leftEncoder)) || (myOnTarget(controlPosNudgeRight, rightEncoder)))
+			{
+				controlPosNudgeLeft->Disable();
+				controlPosNudgeRight->Disable();
+				nudgeRight = false;
+				driveSystem->SetPIDDrive(PID_CONFIG); //enabling main velocity controlled drive system
+			}
+		}
+		else
+		{
+			//get driver controls values
+			driveX = -steeringWheel->GetX();
+			driveY = driveJoystick->GetY();
+			sprintf(myString, "J: %5.3f|%5.3f\n", driveX, driveY);
+			SmartDashboard::PutString("DB/String 0", myString);
+
+			//Filter deadband
+			if (driveX > STEERING_DB_LOW && driveX < STEERING_DB_HIGH)
+				driveX = ZERO_FL;
+			if (driveY > DRIVE_DB_LOW && driveY < DRIVE_DB_HIGH)
+				driveY = ZERO_FL;
+
+			//map to velocity profile
+			driveX = velocityProfileX(driveX);
+			driveY = velocityProfileY(driveY);
 
 
-		sprintf(myString, "D: %5.3f|%5.3f\n", driveX, driveY);
-		SmartDashboard::PutString("DB/String 1", myString);
+			sprintf(myString, "D: %5.3f|%5.3f\n", driveX, driveY);
+			SmartDashboard::PutString("DB/String 1", myString);
 
-		//Give drive instructions
-		driveSystem->SetDriveInstruction(driveY * MAX_RPS, driveX * MAX_RPS);
-		driveSystem->Update();
+			//Give drive instructions
+			driveSystem->SetDriveInstruction(driveY * MAX_RPS, driveX * MAX_RPS);
+			driveSystem->Update();
 
-		sprintf(myString, "SP: %5.3f|%5.3f\n", driveSystem->GetLeftPIDSetpoint(), driveSystem->GetRightPIDSetpoint());
-		SmartDashboard::PutString("DB/String 2", myString);
-		sprintf(myString, "Out: %5.3f|%5.3f\n", driveSystem->GetLeftPIDOutput(), driveSystem->GetRightPIDOutput());
-		SmartDashboard::PutString("DB/String 3", myString);
-		sprintf(myString, "F curr: %f\n", forkMotor->GetOutputCurrent());
-		SmartDashboard::PutString("DB/String 4", myString);
-		sprintf(myString, "L curr: %5.3f|%5.3f\n", liftMotorBack->GetOutputCurrent(), liftMotorBack->GetOutputCurrent());
-		SmartDashboard::PutString("DB/String 5", myString);
+			sprintf(myString, "SP: %5.3f|%5.3f\n", driveSystem->GetLeftPIDSetpoint(), driveSystem->GetRightPIDSetpoint());
+			SmartDashboard::PutString("DB/String 2", myString);
+			sprintf(myString, "Out: %5.3f|%5.3f\n", driveSystem->GetLeftPIDOutput(), driveSystem->GetRightPIDOutput());
+			SmartDashboard::PutString("DB/String 3", myString);
+			sprintf(myString, "F curr: %f\n", forkMotor->GetOutputCurrent());
+			SmartDashboard::PutString("DB/String 4", myString);
+			sprintf(myString, "L curr: %5.3f|%5.3f\n", liftMotorBack->GetOutputCurrent(), liftMotorBack->GetOutputCurrent());
+			SmartDashboard::PutString("DB/String 5", myString);
+
+			sprintf(myString, "end: %5.3f|%5.3f\n", leftEncoder->GetRate(), rightEncoder->GetRate());
+			SmartDashboard::PutString("DB/String 6", myString);
+
+	//		sprintf(myString, "curPos: %f\n", curLiftPos);
+	//		SmartDashboard::PutString("DB/String 8", myString);
+	//		sprintf(myString, "tarPos: %f\n", targetLiftPos);
+	//		SmartDashboard::PutString("DB/String 9", myString);
+		}
 
 		//Give lift instructions
 		liftSystem->Update();
@@ -227,6 +310,14 @@ public:
 		rightEncoder = new Encoder(CHAN_ENCODER_RIGHT_A, CHAN_ENCODER_RIGHT_B, false, Encoder::EncodingType::k4X);
 		rightEncoder->SetDistancePerPulse(ENCODER_DIST_PER_PULSE);
         rightEncoder->SetPIDSourceParameter(rightEncoder->kDistance);
+
+		// Linear Drive PID controllers for nudging
+        controlPosNudgeLeft = new PIDController(POS_NUDGE_PROPORTIONAL_TERM, POS_NUDGE_INTEGRAL_TERM, POS_NUDGE_DIFFERENTIAL_TERM, leftEncoder, leftDrive);
+        controlPosNudgeLeft->SetContinuous(true);
+        controlPosNudgeLeft->SetOutputRange(NUDGE_MAX_REVERSE_SPEED, NUDGE_MAX_FORWARD_SPEED);
+        controlPosNudgeRight = new PIDController(POS_NUDGE_PROPORTIONAL_TERM, POS_NUDGE_INTEGRAL_TERM, POS_NUDGE_DIFFERENTIAL_TERM, rightEncoder, rightDrive);
+        controlPosNudgeRight->SetContinuous(true);
+        controlPosNudgeRight->SetOutputRange(NUDGE_MAX_REVERSE_SPEED, NUDGE_MAX_FORWARD_SPEED);
 
 		//driver controls
 		driveJoystick = new Joystick(CHAN_DRIVE_JS);
@@ -272,7 +363,7 @@ public:
 				liftEncoder, controlLiftBack, controlLiftFront,
 				liftSysJoystick);
 
-		// Linear Drive PID controllers
+		// Linear Drive PID controllers for Autonomous
         controlPosLeft = new PIDController(POS_PROPORTIONAL_TERM, POS_INTEGRAL_TERM, POS_DIFFERENTIAL_TERM, leftEncoder, leftDrive);
         controlPosLeft->SetContinuous(true);
         controlPosLeft->SetOutputRange(AUTONOMOUS_MAX_REVERSE_SPEED, AUTONOMOUS_MAX_FORWARD_SPEED);
@@ -291,6 +382,9 @@ public:
 		delete rightEncoder;
 		if(enteredTelopInit)
 			delete driveSystem;
+		// Linear Drive PID controllers for nudging
+		delete controlPosNudgeLeft;
+		delete controlPosNudgeRight;
 
 		//driver controls
 		delete driveJoystick;
@@ -312,7 +406,7 @@ public:
 		delete liftSysJoystick;
 		delete liftSystem;
 
-		// Linear Drive PID controllers
+		// Linear Drive PID controllers for autonomous
 		delete controlPosLeft;
 		delete controlPosRight;
 	}
