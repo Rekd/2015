@@ -3,7 +3,7 @@
 
 #define PRACTICE							0
 #define COMPETITION							1
-#define BUILD_VER							PRACTICE
+#define BUILD_VER							COMPETITION
 
 #define PI									3.141592653L
 #define ZERO_FL								0.0 //float zero
@@ -37,29 +37,40 @@
 #define CHAN_STEERING_WHEEL					1
 #define CHAN_LIFT_SYS_JS					2
 
+//drive joystick buttons
+#define DRIVE_PID_OFF_BUTTON				11
+#define DRIVE_PID_ON_BUTTON					10
+
 //lift joystick buttons
 #define BUT_FORKS_IN						5
 #define BUT_FORKS_OUT						4
 #define BUT_FORKS_STOP						1
 #define INTAKES_ON_BUTTON					2
 #define INTAKES_OFF_BUTTON					3
+#define DRIVE_NUDGE_LEFT_BUTTON				4
+#define DRIVE_NUDGE_RIGHT_BUTTON			5
 
 //drive wheel buttons
-#define DRIVE_NUDGE_LEFT_BUTTON				5
-#define DRIVE_NUDGE_RIGHT_BUTTON			6
+#define DRIVE_NUDGE_WHEEL_LEFT_BUTTON		5
+#define DRIVE_NUDGE_WHEEL_RIGHT_BUTTON		6
 
 //positional PID parameters for autonomous
-#define POS_ERR_TOL							0.05 //this is a percentage
+#define POS_ERR_TOL							0.08 //this is a percentage
 #define POS_TOL_COMP						0.0025 //this is a tuned value
 #define POS_PROPORTIONAL_TERM          		0.8f
 #define POS_INTEGRAL_TERM               	0.05f
 #define POS_DIFFERENTIAL_TERM          		0.0f
 
 //positional PID parameters for nudging
+#if BUILD_VER == PRACTICE
 #define POS_NUDGE_PROPORTIONAL_TERM          0.8f
 #define POS_NUDGE_INTEGRAL_TERM              0.05f
 #define POS_NUDGE_DIFFERENTIAL_TERM          0.0f
-
+#else
+#define POS_NUDGE_PROPORTIONAL_TERM          1.6f
+#define POS_NUDGE_INTEGRAL_TERM              0.4f
+#define POS_NUDGE_DIFFERENTIAL_TERM          0.0f
+#endif
 //lift PID parameters
 #define LIFT_ENCODER_RESOLUTION 			1024
 #define LIFT_ENCODER_DIST_PER_PULSE 		(1.0/LIFT_ENCODER_RESOLUTION)
@@ -97,8 +108,8 @@
 #define MAX_RPS								8
 #define DRIVE_DB_LOW 						-0.05 //drive deadband low limit
 #define DRIVE_DB_HIGH 						0.05 //drive deadband high limit
-#define STEERING_DB_LOW 						-0.15 //drive deadband low limit
-#define STEERING_DB_HIGH 						0.15 //drive deadband high limit
+#define STEERING_DB_LOW 						-0.10 //drive deadband low limit
+#define STEERING_DB_HIGH 						0.10 //drive deadband high limit
 
 #define PID_OFF 							false
 #define PID_ON								true
@@ -107,7 +118,7 @@
 //autonomous
 #define AUTONOMOUS_MAX_FORWARD_SPEED 		0.6 //signed
 #define AUTONOMOUS_MAX_REVERSE_SPEED		-0.6 //signed
-#define AUTONMOUS_MOVE_DIST					-5.73*1.15 //tire revolutions; for 4 in wheels ~6 feet; - for backwards, + for forwards
+#define AUTONMOUS_MOVE_DIST					-5.73*1.3 //tire revolutions; for 4 in wheels ~6 feet; - for backwards, + for forwards
 
 //nudge
 #define NUDGE_MAX_FORWARD_SPEED				0.4 //signed
@@ -116,7 +127,7 @@
 
 //current monitoring
 #if BUILD_VER == COMPETITION
-#define FORK_CURRENT_LIMIT					10.0
+#define FORK_CURRENT_LIMIT					20.0
 #else
 #define FORK_CURRENT_LIMIT					25.0
 #endif

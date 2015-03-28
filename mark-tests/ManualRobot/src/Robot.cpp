@@ -10,8 +10,11 @@ char myString[64]; //for debugging
 bool myOnTarget(PIDController *controller, PIDSource *source)
 {
 	float error = controller->GetSetpoint() - source->PIDGet();
-	float tolerance = error * POS_ERR_TOL; //any percentage value
-	return (fabs(tolerance) < POS_TOL_COMP); // a tuned value
+	sprintf(myString, "N: %5.2f|%5.2f\n", controller->GetSetpoint(), source->PIDGet());
+	SmartDashboard::PutString("DB/String 7", myString);
+//	float tolerance = error * POS_ERR_TOL; //any percentage value
+//	return (fabs(tolerance) < POS_TOL_COMP); // a tuned value
+	return (fabs(error) < POS_ERR_TOL);
 }
 
 #if 0 // piece-wise
@@ -73,6 +76,7 @@ private:
 	Joystick *driveJoystick;
 	Joystick *steeringWheel;
 	float driveX, driveY; //values from driver controls: x from steeringWheel, y from driveJoystick
+	bool drivePID;
 
 	//drive nudge flags
 	bool nudgeLeft, nudgeRight;
@@ -123,12 +127,21 @@ private:
 	void AutonomousPeriodic()
 	{
 		char myString[64];
+		float curLiftPos;
+		float targetLiftPos;
 
 		liftSystem->UpdateAuto();
 		if (autonomousDriveState == fork_in)
 		{
 			if (!(liftSystem->CheckForksIn()))  // forks have stopped - move
 			{
+				//Lift tote
+				curLiftPos = liftEncoder->GetDistance();
+				targetLiftPos = curLiftPos + (6*HALF_INCH_OFFSET); //Set target +3 in.
+				controlLiftBack->Enable();
+				controlLiftBack->SetSetpoint(targetLiftPos);
+				controlLiftFront->Enable();
+				controlLiftFront->SetSetpoint(targetLiftPos);
 				controlPosLeft->Enable();
 				controlPosLeft->SetSetpoint(AUTONMOUS_MOVE_DIST);
 				controlPosRight->Enable();
@@ -153,7 +166,9 @@ private:
 			{
 				controlPosLeft->Disable();  // disable the drive PID controllers
 				controlPosRight->Disable();
-				liftSystem->StartForksOutAuto();  // start the forks moving in
+				controlLiftBack->Disable(); //lowers the lift and ensures the the lift does not start teleop in position hold
+				controlLiftFront->Disable();
+				liftSystem->StartForksOutAuto();
 				autonomousDriveState = release;
 			}
 		}
@@ -172,6 +187,7 @@ private:
 
 		//Initialize PID
 		driveSystem->SetPIDDrive(PID_CONFIG);
+		drivePID = true;
 		//Set Wheel Diameter
 		driveSystem->SetWheelDiameter(WHEEL_DIAMETER);
 		// start recording the distance traveled
@@ -180,13 +196,36 @@ private:
 
 	void TeleopPeriodic()
 	{
+		//check for PID button on/off
+		//By default, PID is true at startup.
+		if(driveJoystick->GetRawButton(DRIVE_PID_OFF_BUTTON))
+		{
+			driveSystem->SetPIDDrive(false);
+			drivePID = false;
+		}
+		else if(driveJoystick->GetRawButton(DRIVE_PID_ON_BUTTON))
+		{
+			driveSystem->SetPIDDrive(true);
+			drivePID = true;
+		}
+
 		//check for nudge button presses
-		if((steeringWheel->GetRawButton(DRIVE_NUDGE_LEFT_BUTTON)) && (!nudgeLeft && !nudgeRight))
+		if((steeringWheel->GetRawButton(DRIVE_NUDGE_WHEEL_LEFT_BUTTON)) && (!nudgeLeft && !nudgeRight))
 		{
 			nudgeLeft = true;
 			nudgeRight = false;
 		}
-		if((steeringWheel->GetRawButton(DRIVE_NUDGE_RIGHT_BUTTON)) && (!nudgeLeft && !nudgeRight))
+		if((steeringWheel->GetRawButton(DRIVE_NUDGE_WHEEL_RIGHT_BUTTON)) && (!nudgeLeft && !nudgeRight))
+		{
+			nudgeLeft = false;
+			nudgeRight = true;
+		}
+		if((driveJoystick->GetRawButton(DRIVE_NUDGE_LEFT_BUTTON)) && (!nudgeLeft && !nudgeRight))
+		{
+			nudgeLeft = true;
+			nudgeRight = false;
+		}
+		if((driveJoystick->GetRawButton(DRIVE_NUDGE_RIGHT_BUTTON)) && (!nudgeLeft && !nudgeRight))
 		{
 			nudgeLeft = false;
 			nudgeRight = true;
@@ -198,9 +237,17 @@ private:
 					myOnTarget(controlPosNudgeRight, rightEncoder));
 			SmartDashboard::PutString("DB/String 7", myString);
 
+			sprintf(myString, "SP: %5.3f|%5.3f\n", controlPosNudgeLeft->GetSetpoint(), controlPosNudgeRight->GetSetpoint());
+			SmartDashboard::PutString("DB/String 2", myString);
+			sprintf(myString, "Out: %5.3f|%5.3f\n", controlPosNudgeLeft->Get(), controlPosNudgeRight->Get());
+			SmartDashboard::PutString("DB/String 3", myString);
+
+
 			if(!(controlPosNudgeLeft->IsEnabled()))
 			{
 				driveSystem->SetPIDDrive(false); //disabling main velocity controlled drive system
+		        leftEncoder->SetPIDSourceParameter(leftEncoder->kDistance);
+		        rightEncoder->SetPIDSourceParameter(rightEncoder->kDistance);
 				controlPosNudgeLeft->Enable();
 				controlPosNudgeLeft->SetSetpoint(-NUDGE_MOVE_DIST);
 				controlPosNudgeRight->Enable();
@@ -209,10 +256,16 @@ private:
 
 			if ((myOnTarget(controlPosNudgeLeft, leftEncoder)) || (myOnTarget(controlPosNudgeRight, rightEncoder)))
 			{
+				sprintf(myString, "On Target\n");
+				SmartDashboard::PutString("DB/String 3", myString);
+
 				controlPosNudgeLeft->Disable();
 				controlPosNudgeRight->Disable();
 				nudgeLeft = false;
-				driveSystem->SetPIDDrive(PID_CONFIG); //enabling main velocity controlled drive system
+				if(drivePID)
+				{
+					driveSystem->SetPIDDrive(PID_CONFIG); //enabling main velocity controlled drive system
+				}
 			}
 		}
 		else if(nudgeRight)
@@ -220,9 +273,17 @@ private:
 			sprintf(myString, "NR: %d|%d\n", myOnTarget(controlPosNudgeLeft, leftEncoder),
 					myOnTarget(controlPosNudgeRight, rightEncoder));
 			SmartDashboard::PutString("DB/String 7", myString);
+
+			sprintf(myString, "SP: %5.3f|%5.3f\n", controlPosNudgeLeft->GetSetpoint(), controlPosNudgeRight->GetSetpoint());
+			SmartDashboard::PutString("DB/String 2", myString);
+			sprintf(myString, "Out: %5.3f|%5.3f\n", controlPosNudgeLeft->Get(), controlPosNudgeRight->Get());
+			SmartDashboard::PutString("DB/String 3", myString);
+
 			if(!(controlPosNudgeLeft->IsEnabled()))
 			{
 				driveSystem->SetPIDDrive(false); //disabling main velocity controlled drive system
+		        leftEncoder->SetPIDSourceParameter(leftEncoder->kDistance);
+		        rightEncoder->SetPIDSourceParameter(rightEncoder->kDistance);
 				controlPosNudgeLeft->Enable();
 				controlPosNudgeLeft->SetSetpoint(NUDGE_MOVE_DIST);
 				controlPosNudgeRight->Enable();
@@ -231,10 +292,15 @@ private:
 
 			if ((myOnTarget(controlPosNudgeLeft, leftEncoder)) || (myOnTarget(controlPosNudgeRight, rightEncoder)))
 			{
+				sprintf(myString, "On Target\n");
+				SmartDashboard::PutString("DB/String 3", myString);
 				controlPosNudgeLeft->Disable();
 				controlPosNudgeRight->Disable();
 				nudgeRight = false;
-				driveSystem->SetPIDDrive(PID_CONFIG); //enabling main velocity controlled drive system
+				if(drivePID)
+				{
+					driveSystem->SetPIDDrive(PID_CONFIG); //enabling main velocity controlled drive system
+				}
 			}
 		}
 		else
@@ -263,17 +329,20 @@ private:
 			driveSystem->SetDriveInstruction(driveY * MAX_RPS, driveX * MAX_RPS);
 			driveSystem->Update();
 
-			sprintf(myString, "SP: %5.3f|%5.3f\n", driveSystem->GetLeftPIDSetpoint(), driveSystem->GetRightPIDSetpoint());
-			SmartDashboard::PutString("DB/String 2", myString);
-			sprintf(myString, "Out: %5.3f|%5.3f\n", driveSystem->GetLeftPIDOutput(), driveSystem->GetRightPIDOutput());
-			SmartDashboard::PutString("DB/String 3", myString);
-			sprintf(myString, "F curr: %f\n", forkMotor->GetOutputCurrent());
+//			sprintf(myString, "SP: %5.3f|%5.3f\n", driveSystem->GetLeftPIDSetpoint(), driveSystem->GetRightPIDSetpoint());
+//			SmartDashboard::PutString("DB/String 2", myString);
+//			sprintf(myString, "Out: %5.3f|%5.3f\n", driveSystem->GetLeftPIDOutput(), driveSystem->GetRightPIDOutput());
+//			SmartDashboard::PutString("DB/String 3", myString);
+			sprintf(myString, "PID: %d", drivePID);
 			SmartDashboard::PutString("DB/String 4", myString);
 			sprintf(myString, "L curr: %5.3f|%5.3f\n", liftMotorBack->GetOutputCurrent(), liftMotorBack->GetOutputCurrent());
 			SmartDashboard::PutString("DB/String 5", myString);
 
-			sprintf(myString, "end: %5.3f|%5.3f\n", leftEncoder->GetRate(), rightEncoder->GetRate());
+			sprintf(myString, "enc: %5.3f|%5.3f\n", leftEncoder->GetRate(), rightEncoder->GetRate());
 			SmartDashboard::PutString("DB/String 6", myString);
+
+			sprintf(myString, "enc: %d|%d\n", leftEncoder->Get(), rightEncoder->Get());
+			SmartDashboard::PutString("DB/String 8", myString);
 
 	//		sprintf(myString, "curPos: %f\n", curLiftPos);
 	//		SmartDashboard::PutString("DB/String 8", myString);
@@ -305,9 +374,11 @@ public:
 		rightDrive = new Victor(CHAN_RIGHT_DRIVE);
 #endif
 		leftEncoder = new Encoder(CHAN_ENCODER_LEFT_A, CHAN_ENCODER_LEFT_B, false, Encoder::EncodingType::k4X);
+		leftEncoder->Reset();
 		leftEncoder->SetDistancePerPulse(ENCODER_DIST_PER_PULSE);
         leftEncoder->SetPIDSourceParameter(leftEncoder->kDistance);
 		rightEncoder = new Encoder(CHAN_ENCODER_RIGHT_A, CHAN_ENCODER_RIGHT_B, false, Encoder::EncodingType::k4X);
+		rightEncoder->Reset();
 		rightEncoder->SetDistancePerPulse(ENCODER_DIST_PER_PULSE);
         rightEncoder->SetPIDSourceParameter(rightEncoder->kDistance);
 
