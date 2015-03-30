@@ -40,6 +40,8 @@
 //drive joystick buttons
 #define DRIVE_PID_OFF_BUTTON				11
 #define DRIVE_PID_ON_BUTTON					10
+#define DRIVE_NUDGE_LEFT_BUTTON				4
+#define DRIVE_NUDGE_RIGHT_BUTTON			5
 
 //lift joystick buttons
 #define BUT_FORKS_IN						5
@@ -47,8 +49,6 @@
 #define BUT_FORKS_STOP						1
 #define INTAKES_ON_BUTTON					2
 #define INTAKES_OFF_BUTTON					3
-#define DRIVE_NUDGE_LEFT_BUTTON				4
-#define DRIVE_NUDGE_RIGHT_BUTTON			5
 
 //drive wheel buttons
 #define DRIVE_NUDGE_WHEEL_LEFT_BUTTON		5
@@ -118,7 +118,7 @@
 //autonomous
 #define AUTONOMOUS_MAX_FORWARD_SPEED 		0.6 //signed
 #define AUTONOMOUS_MAX_REVERSE_SPEED		-0.6 //signed
-#define AUTONMOUS_MOVE_DIST					-5.73*1.3 //tire revolutions; for 4 in wheels ~6 feet; - for backwards, + for forwards
+#define AUTONMOUS_MOVE_DIST					-5.73*1.2 //tire revolutions; for 4 in wheels ~6 feet; - for backwards, + for forwards
 
 //nudge
 #define NUDGE_MAX_FORWARD_SPEED				0.4 //signed
@@ -127,7 +127,7 @@
 
 //current monitoring
 #if BUILD_VER == COMPETITION
-#define FORK_CURRENT_LIMIT					20.0
+#define FORK_CURRENT_LIMIT					32.0
 #else
 #define FORK_CURRENT_LIMIT					25.0
 #endif

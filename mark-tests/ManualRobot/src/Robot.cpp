@@ -176,6 +176,8 @@ private:
 
 	void TeleopInit()
 	{
+		controlPosLeft->Disable();
+		controlPosRight->Disable();
 		enteredTelopInit = true;
 		driveSystem = new DriveSystem(leftEncoder, rightEncoder, leftDrive, rightDrive);
 
@@ -262,6 +264,7 @@ private:
 				controlPosNudgeLeft->Disable();
 				controlPosNudgeRight->Disable();
 				nudgeLeft = false;
+				nudgeRight = false;
 				if(drivePID)
 				{
 					driveSystem->SetPIDDrive(PID_CONFIG); //enabling main velocity controlled drive system
@@ -297,6 +300,7 @@ private:
 				controlPosNudgeLeft->Disable();
 				controlPosNudgeRight->Disable();
 				nudgeRight = false;
+				nudgeLeft = false;
 				if(drivePID)
 				{
 					driveSystem->SetPIDDrive(PID_CONFIG); //enabling main velocity controlled drive system

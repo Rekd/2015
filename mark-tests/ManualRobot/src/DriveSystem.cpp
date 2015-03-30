@@ -120,8 +120,8 @@ class DriveSystem {
     
     void SetPIDDrive(bool pid) {
         // When in PID mode, send speeds for instructions, else send motor power values
-      m_pLeftEncoder->Reset();
-      m_pRightEncoder->Reset();
+//      m_pLeftEncoder->Reset();
+//      m_pRightEncoder->Reset();
 
     	pidDrive = pid;
         if (pid && !controlLeft->IsEnabled()) {
