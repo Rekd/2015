@@ -57,10 +57,10 @@ private:
 	bool enteredTelopInit; //drive system is created in teleop init so only delete the drive system in the destructor if entered teleop init
 
 	//drive system
-#if BUILD_VER == COMPETITION
+#if BUILD_VER == COMPETITION || BUILD_VER == PARADE
 	Talon * leftDrive;
 	Talon * rightDrive;
-#else
+#else //practice
 	Victor * leftDrive;
 	Victor * rightDrive;
 #endif
@@ -74,7 +74,9 @@ private:
 
 	//driver controls
 	Joystick *driveJoystick;
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 	Joystick *steeringWheel;
+#endif
 	float driveX, driveY; //values from driver controls: x from steeringWheel, y from driveJoystick
 	bool drivePID;
 
@@ -82,13 +84,13 @@ private:
 	bool nudgeLeft, nudgeRight;
 
 	//lift system
-#if BUILD_VER == COMPETITION
+#if BUILD_VER == COMPETITION || BUILD_VER == PARADE
 	CANTalon *forkMotor;
 	CANTalon *liftMotorBack;
 	CANTalon *liftMotorFront;
 	CANTalon *leftIntakeMotor;
 	CANTalon *rightIntakeMotor;
-#else
+#else //practice
 	CANJaguar *forkMotor;
 	CANJaguar *liftMotorBack;
 	CANJaguar *liftMotorFront;
@@ -119,13 +121,15 @@ private:
 
 	void AutonomousInit()
 	{
-
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 		liftSystem->StartForksInAuto();  // start the forks moving in
 		autonomousDriveState = fork_in;
+#endif
 	}
 
 	void AutonomousPeriodic()
 	{
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 		char myString[64];
 		float curLiftPos;
 		float targetLiftPos;
@@ -172,6 +176,7 @@ private:
 				autonomousDriveState = release;
 			}
 		}
+#endif
 	}
 
 	void TeleopInit()
@@ -370,10 +375,10 @@ public:
 		enteredTelopInit = false;
 
 		//drive system
-#if BUILD_VER == COMPETITION
+#if BUILD_VER == COMPETITION || BUILD_VER == PARADE
 		leftDrive = new Talon(CHAN_LEFT_DRIVE);
 		rightDrive = new Talon(CHAN_RIGHT_DRIVE);
-#else
+#else //practice
 		leftDrive = new Victor(CHAN_LEFT_DRIVE);
 		rightDrive = new Victor(CHAN_RIGHT_DRIVE);
 #endif
@@ -395,17 +400,19 @@ public:
         controlPosNudgeRight->SetOutputRange(NUDGE_MAX_REVERSE_SPEED, NUDGE_MAX_FORWARD_SPEED);
 
 		//driver controls
-		driveJoystick = new Joystick(CHAN_DRIVE_JS);
+        driveJoystick = new Joystick(CHAN_DRIVE_JS);
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 		steeringWheel = new Joystick(CHAN_STEERING_WHEEL);
+#endif
 
 		//lift system
-#if BUILD_VER == COMPETITION
+#if BUILD_VER == COMPETITION || BUILD_VER == PARADE
 		forkMotor = new CANTalon(CHAN_FORK_MOTOR);
 		liftMotorBack = new CANTalon(CHAN_LIFT_MOTOR_BACK);
 		liftMotorFront = new CANTalon(CHAN_LIFT_MOTOR_FRONT);
 		leftIntakeMotor = new CANTalon(CHAN_L_INTAKE_MOTOR);
 		rightIntakeMotor = new CANTalon(CHAN_R_INTAKE_MOTOR);
-#else
+#else //practice
 		forkMotor = new CANJaguar(CHAN_FORK_MOTOR);
 		liftMotorBack = new CANJaguar(CHAN_LIFT_MOTOR_BACK);
 		liftMotorFront = new CANJaguar(CHAN_LIFT_MOTOR_FRONT);
@@ -418,7 +425,7 @@ public:
 		liftLimitHigh = new DigitalInput(CHAN_LIFT_HIGH_LS);
 		liftEncoder = new Encoder(CHAN_LIFT_ENCODER_A, CHAN_LIFT_ENCODER_B, false, Encoder::EncodingType::k4X);
 		liftEncoder->SetDistancePerPulse(LIFT_ENCODER_DIST_PER_PULSE);
-#if BUILD_VER == COMPETITION
+#if BUILD_VER == COMPETITION || BUILD_VER == PARADE
 		liftEncoder->SetReverseDirection(true);
 #endif
 		liftEncoder->SetPIDSourceParameter(liftEncoder->kDistance);
@@ -432,11 +439,16 @@ public:
 		controlLiftFront->SetOutputRange(LIFT_PID_OUT_MIN, LIFT_PID_OUT_MAX);
 		controlLiftFront->Disable(); //hold position is off at initialization
 
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 		liftSysJoystick = new Joystick(CHAN_LIFT_SYS_JS);
+#else
+		liftSysJoystick = driveJoystick;
+#endif
 		liftSystem = new LiftSystem(forkMotor, liftMotorBack, liftMotorFront, leftIntakeMotor, rightIntakeMotor,
 				forkLimitInner, forkLimitOuter, liftLimitLow, liftLimitHigh,
 				liftEncoder, controlLiftBack, controlLiftFront,
 				liftSysJoystick);
+
 
 		// Linear Drive PID controllers for Autonomous
         controlPosLeft = new PIDController(POS_PROPORTIONAL_TERM, POS_INTEGRAL_TERM, POS_DIFFERENTIAL_TERM, leftEncoder, leftDrive);
@@ -463,7 +475,9 @@ public:
 
 		//driver controls
 		delete driveJoystick;
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 		delete steeringWheel;
+#endif
 
 		//lift system
 		delete forkMotor;
@@ -478,7 +492,9 @@ public:
 		delete liftEncoder;
 		delete controlLiftBack;
 		delete controlLiftFront;
-		delete liftSysJoystick;
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
+		delete liftSysJoystick; //if parade, deletion of driveJoystick takes care of this
+#endif
 		delete liftSystem;
 
 		// Linear Drive PID controllers for autonomous

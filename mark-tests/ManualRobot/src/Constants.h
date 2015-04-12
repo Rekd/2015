@@ -3,7 +3,8 @@
 
 #define PRACTICE							0
 #define COMPETITION							1
-#define BUILD_VER							COMPETITION
+#define PARADE								2
+#define BUILD_VER							PARADE
 
 #define PI									3.141592653L
 #define ZERO_FL								0.0 //float zero
@@ -18,8 +19,8 @@
 #define CHAN_LIFT_ENCODER_B					4
 #define CHAN_LIFT_LOW_LS 					3
 #define CHAN_LIFT_HIGH_LS 					2
-#define CHAN_FORK_MIN_LS 					0 //rename to forkInner
-#define CHAN_FORK_MAX_LS 					1 //rename to forkMax
+#define CHAN_FORK_MIN_LS 					0 //aka forkInner
+#define CHAN_FORK_MAX_LS 					1 //aka forkOuter
 
 //pwm channels
 #define CHAN_LEFT_DRIVE						8
@@ -33,26 +34,45 @@
 #define CHAN_R_INTAKE_MOTOR					11 //can
 
 //usb channels
-#define CHAN_DRIVE_JS						0
+#define CHAN_DRIVE_JS						0 //For parade build version, this is the only joystick used
 #define CHAN_STEERING_WHEEL					1
 #define CHAN_LIFT_SYS_JS					2
 
 //drive joystick buttons
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 #define DRIVE_PID_OFF_BUTTON				11
 #define DRIVE_PID_ON_BUTTON					10
 #define DRIVE_NUDGE_LEFT_BUTTON				4
 #define DRIVE_NUDGE_RIGHT_BUTTON			5
+#else //parade: these don't apply to parade
+#define DRIVE_PID_OFF_BUTTON				0 //there is no joystick button 0
+#define DRIVE_PID_ON_BUTTON					0
+#define DRIVE_NUDGE_LEFT_BUTTON				0
+#define DRIVE_NUDGE_RIGHT_BUTTON			0
+#endif
 
 //lift joystick buttons
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 #define BUT_FORKS_IN						5
 #define BUT_FORKS_OUT						4
 #define BUT_FORKS_STOP						1
 #define INTAKES_ON_BUTTON					2
 #define INTAKES_OFF_BUTTON					3
+#else //parade
+#define BUT_FORKS_IN						4
+#define BUT_FORKS_OUT						5
+#define BUT_FORKS_STOP						1
+#define INTAKES_ON_BUTTON					0 //Intakes don't apply to parade; there is no joystick button 0
+#define INTAKES_OFF_BUTTON					0
 
 //drive wheel buttons
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 #define DRIVE_NUDGE_WHEEL_LEFT_BUTTON		5
 #define DRIVE_NUDGE_WHEEL_RIGHT_BUTTON		6
+#else //there is no drive wheel for parade
+#define DRIVE_NUDGE_WHEEL_LEFT_BUTTON		0 //there is no joystick button 0
+#define DRIVE_NUDGE_WHEEL_RIGHT_BUTTON		0
+#endif
 
 //positional PID parameters for autonomous
 #define POS_ERR_TOL							0.08 //this is a percentage
@@ -66,11 +86,12 @@
 #define POS_NUDGE_PROPORTIONAL_TERM          0.8f
 #define POS_NUDGE_INTEGRAL_TERM              0.05f
 #define POS_NUDGE_DIFFERENTIAL_TERM          0.0f
-#else
+#elif BUILD_VER == COMPETITION || BUILD_VER == PARADE //these are defined by not used for parade
 #define POS_NUDGE_PROPORTIONAL_TERM          1.6f
 #define POS_NUDGE_INTEGRAL_TERM              0.4f
 #define POS_NUDGE_DIFFERENTIAL_TERM          0.0f
 #endif
+
 //lift PID parameters
 #define LIFT_ENCODER_RESOLUTION 			1024
 #define LIFT_ENCODER_DIST_PER_PULSE 		(1.0/LIFT_ENCODER_RESOLUTION)
@@ -88,18 +109,12 @@
 #define WHEEL_CIRCUMFERENCE         		(PI*WHEEL_DIAMETER)
 #define DRIVE_ENCODER_CPR          		 	360
 
-//#define PROPORTIONAL_TERM          			0.7f
-//#define INTEGRAL_TERM               		1.3f
-//#define DIFFERENTIAL_TERM          			0.1f
-
-
+//drive PID
 #if BUILD_VER == PRACTICE
 #define PROPORTIONAL_TERM           		0.005f
 #define INTEGRAL_TERM               		0.1f
 #define DIFFERENTIAL_TERM           	0.001f
-#endif
-
-#if BUILD_VER == COMPETITION
+#elif BUILD_VER == COMPETITION || BUILD_VER == PARADE
 #define PROPORTIONAL_TERM           		0.005f
 #define INTEGRAL_TERM               		0.1f
 #define DIFFERENTIAL_TERM           	0.001f
@@ -116,9 +131,15 @@
 #define PID_CONFIG							PID_ON
 
 //autonomous
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 #define AUTONOMOUS_MAX_FORWARD_SPEED 		0.6 //signed
 #define AUTONOMOUS_MAX_REVERSE_SPEED		-0.6 //signed
 #define AUTONMOUS_MOVE_DIST					-5.73*1.2 //tire revolutions; for 4 in wheels ~6 feet; - for backwards, + for forwards
+#else //parade
+#define AUTONOMOUS_MAX_FORWARD_SPEED 		0.0 //signed
+#define AUTONOMOUS_MAX_REVERSE_SPEED		0.0 //signed
+#define AUTONMOUS_MOVE_DIST					0.0 //tire revolutions; for 4 in wheels 0 feet; - for backwards, + for forwards
+#endif
 
 //nudge
 #define NUDGE_MAX_FORWARD_SPEED				0.4 //signed
@@ -126,9 +147,9 @@
 #define NUDGE_MOVE_DIST						0.25 //tire revolutions right is pos, left is neg
 
 //current monitoring
-#if BUILD_VER == COMPETITION
+#if BUILD_VER == COMPETITION || BUILD_VER == PARADE
 #define FORK_CURRENT_LIMIT					32.0
-#else
+#else //practice
 #define FORK_CURRENT_LIMIT					25.0
 #endif
 
@@ -152,10 +173,9 @@
 #define INTAKE_MOTOR_SPEED					0.3 //unsigned, set sign when used although per the discussion above should only be used positive
 #define FORK_MOTOR_SPEED_OUT				0.7 //unsigned, set sign when used
 #define FORK_MOTOR_SPEED_IN					0.7 //unsigned, set sign when used
-// original #define LIFT_MOTOR_SPEED_UP					0.4 //unsigned, set sign when used
-#if BUILD_VER == COMPETITION
+#if BUILD_VER == COMPETITION || BUILD_VER == PARADE
 #define LIFT_MOTOR_SPEED_UP					0.6 //unsigned, set sign when used
-#else
+#else //practice
 #define LIFT_MOTOR_SPEED_UP					0.25 //unsigned, set sign when used
 #endif
 #define LIFT_MOTOR_SPEED_DOWN				0.2 //unsigned, set sign when used
@@ -163,5 +183,9 @@
 #define LIFT_DB_HIGH 						0.2 //lift deadband high limit
 #define AT_TOP_LIFT_DUR						0.5 //duartion in seconds that lift up motion will be prevented if the top limit switch is hit
 
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 #define VELOCITY_SCALE  					0.5
+#else //parade
+#define VELOCITY_SCALE  					0.3 //slower for parade
+
 #endif
