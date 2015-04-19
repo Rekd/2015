@@ -216,6 +216,7 @@ private:
 			drivePID = true;
 		}
 
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 		//check for nudge button presses
 		if((steeringWheel->GetRawButton(DRIVE_NUDGE_WHEEL_LEFT_BUTTON)) && (!nudgeLeft && !nudgeRight))
 		{
@@ -312,10 +313,18 @@ private:
 				}
 			}
 		}
+#endif
+#if BUILD_VER == PARADE
+		if (false); //no nudging in parade
+#endif
 		else
 		{
 			//get driver controls values
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 			driveX = -steeringWheel->GetX();
+#else //parade
+			driveX = -driveJoystick->GetX();
+#endif
 			driveY = driveJoystick->GetY();
 			sprintf(myString, "J: %5.3f|%5.3f\n", driveX, driveY);
 			SmartDashboard::PutString("DB/String 0", myString);
@@ -329,7 +338,6 @@ private:
 			//map to velocity profile
 			driveX = velocityProfileX(driveX);
 			driveY = velocityProfileY(driveY);
-
 
 			sprintf(myString, "D: %5.3f|%5.3f\n", driveX, driveY);
 			SmartDashboard::PutString("DB/String 1", myString);

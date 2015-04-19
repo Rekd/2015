@@ -230,8 +230,21 @@ void LiftSystem::Update()
 			atTopHold = true;
 	}
 
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 	liftDir = liftSysJoystick->GetY();
+#else //parade
+	bool liftDown, liftUp;
+	liftDown = liftSysJoystick->GetRawButton(BUT_LIFT_DOWN);
+	liftUp = liftSysJoystick->GetRawButton(BUT_LIFT_UP);
 
+	if (liftDown) //if both buttons are pressed, lift goes down
+		liftDir = -1; //val means pos(up) or neg(down), this val should be outside the deadband, because there is no deadband for parade
+	else if (liftUp)
+		liftDir = 1;
+	if (!liftDown && !liftUp)
+		liftDir = 0;
+
+#endif
 	if(atTopHold)
 	{
 		if(liftDir < 0.0) //exit lift hold condition
@@ -241,6 +254,7 @@ void LiftSystem::Update()
 			atTopHold = false;
 		}
 	}
+
 	else
 	{
 		//Filter deadband
@@ -279,7 +293,11 @@ void LiftSystem::Update()
 
 			//manual control
 			if ((liftDir > ZERO_FL) && !GetLiftLimitSwitchHigh() && !atTop)  // move up
+#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 				SetLiftMotor(0.3 + liftDir*0.5); //granular lift up speed - was 0.7
+#else //parade
+				SetLiftMotor(LIFT_MOTOR_SPEED_UP); //fixed lift up speed for parade
+#endif
 			else if((liftDir < ZERO_FL) && !GetLiftLimitSwitchLow())  // move down
 				SetLiftMotor(-LIFT_MOTOR_SPEED_DOWN); //fixed lift down speed
 			else

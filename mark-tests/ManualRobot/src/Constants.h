@@ -45,10 +45,10 @@
 #define DRIVE_NUDGE_LEFT_BUTTON				4
 #define DRIVE_NUDGE_RIGHT_BUTTON			5
 #else //parade: these don't apply to parade
-#define DRIVE_PID_OFF_BUTTON				0 //there is no joystick button 0
-#define DRIVE_PID_ON_BUTTON					0
-#define DRIVE_NUDGE_LEFT_BUTTON				0
-#define DRIVE_NUDGE_RIGHT_BUTTON			0
+#define DRIVE_PID_OFF_BUTTON				12 //there is no joystick button 12
+#define DRIVE_PID_ON_BUTTON					12
+#define DRIVE_NUDGE_LEFT_BUTTON				12
+#define DRIVE_NUDGE_RIGHT_BUTTON			12
 #endif
 
 //lift joystick buttons
@@ -62,16 +62,19 @@
 #define BUT_FORKS_IN						4
 #define BUT_FORKS_OUT						5
 #define BUT_FORKS_STOP						1
-#define INTAKES_ON_BUTTON					0 //Intakes don't apply to parade; there is no joystick button 0
-#define INTAKES_OFF_BUTTON					0
+#define INTAKES_ON_BUTTON					12 //Intakes don't apply to parade; there is no joystick button 12
+#define INTAKES_OFF_BUTTON					12
+#define BUT_LIFT_UP							3
+#define BUT_LIFT_DOWN						2
+#endif
 
 //drive wheel buttons
 #if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 #define DRIVE_NUDGE_WHEEL_LEFT_BUTTON		5
 #define DRIVE_NUDGE_WHEEL_RIGHT_BUTTON		6
 #else //there is no drive wheel for parade
-#define DRIVE_NUDGE_WHEEL_LEFT_BUTTON		0 //there is no joystick button 0
-#define DRIVE_NUDGE_WHEEL_RIGHT_BUTTON		0
+#define DRIVE_NUDGE_WHEEL_LEFT_BUTTON		12 //there is no joystick button 12
+#define DRIVE_NUDGE_WHEEL_RIGHT_BUTTON		12
 #endif
 
 //positional PID parameters for autonomous
@@ -186,6 +189,7 @@
 #if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
 #define VELOCITY_SCALE  					0.5
 #else //parade
-#define VELOCITY_SCALE  					0.3 //slower for parade
-
+#define VELOCITY_SCALE  					0.4 //slower for parade
 #endif
+
+#endif /* _CONSTANTS_H_ */
