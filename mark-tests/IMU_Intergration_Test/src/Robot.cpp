@@ -1,3 +1,4 @@
+\
 #include "WPILib.h"
 #include "Constants.h"
 #include "LiftSystem.h"
@@ -130,6 +131,16 @@ private:
 		CameraServer::GetInstance()->SetQuality(50);
 		//the camera name (ex "cam0") can be found through the roborio web interface
 		CameraServer::GetInstance()->StartAutomaticCapture("cam1");
+
+
+		driveSystem = new DriveSystem(leftEncoder, rightEncoder, leftDrive, rightDrive);
+
+		//Initialize PID
+		driveSystem->SetPIDDrive(PID_CONFIG);
+		//Set Wheel Diameter
+		driveSystem->SetWheelDiameter(WHEEL_DIAMETER);
+		// start recording the distance traveled
+		driveSystem->StartRecordingDistance();
 	}
 
 	void AutonomousInit()
@@ -177,9 +188,15 @@ private:
 //				autonomousDriveState = release;
 //			}
 //		}
-
 		int reset_yaw_count = 0;
 		int reset_displacement_count = 0;
+
+		bool hasReachedTarget = false;
+		float target = 0.0;
+		float autoSpeed = 0.0;
+		float turnSpeed = 0.4;
+		float margin = 4.0;
+
 		while (IsAutonomous())
 		{
 			if ( first_iteration ) {
@@ -189,11 +206,14 @@ private:
 					imu->ZeroYaw();
 					first_iteration = false;
 				}
+
+				target = imu->GetAngle() + 90;
+
 			}
 			bool yaw_axis_up;
 			uint8_t yaw_axis = imu->GetBoardYawAxis(yaw_axis_up);
 
-			bool reset_yaw_button_pressed = DriverStation::GetInstance()->GetStickButton(0,1);
+			bool reset_yaw_button_pressed = driveJoystick->GetRawButton(IMU_YAW_RESET);
 			if ( reset_yaw_button_pressed ) {
 				imu->ZeroYaw();
 				reset_yaw_count++;
@@ -203,6 +223,21 @@ private:
 				imu->ResetDisplacement();
 				reset_displacement_count++;
 			}
+
+			float offFromTarget = fabs(imu->GetAngle() - target);
+			if(offFromTarget < margin) {
+				hasReachedTarget = true;
+				driveSystem->SetDriveInstruction(0.0,0.0);
+				driveSystem->Update();
+			}
+
+			if(!hasReachedTarget) {
+				driveSystem->SetDriveInstruction(autoSpeed * MAX_RPS, turnSpeed * MAX_RPS);
+				driveSystem->Update();
+			}
+
+			SmartDashboard::PutNumber("target", target);
+			SmartDashboard::PutNumber("offFromTarget",offFromTarget);
 
 			SmartDashboard::PutNumber("Reset_Yaw_Count", reset_yaw_count);
 			SmartDashboard::PutNumber("Reset_Displacement_Count", reset_displacement_count);
@@ -232,27 +267,21 @@ private:
 			SmartDashboard::PutNumber("Displacement_X",     imu->GetDisplacementX() );
 			SmartDashboard::PutNumber("Displacement_Y",     imu->GetDisplacementY() );
 
-			Wait(0.1);				// wait for a while
+			SmartDashboard::PutBoolean("Reached_Target",       hasReachedTarget);
+
+			//Wait(0.1);				// wait for a while
 		}
 	}
 
 	void TeleopInit()
 	{
 		enteredTelopInit = true;
-		driveSystem = new DriveSystem(leftEncoder, rightEncoder, leftDrive, rightDrive);
 
 		//to disable nudge position control to start
 		controlPosNudgeLeft->Disable();
 		controlPosNudgeRight->Disable();
 		nudgeRight = false;
 		nudgeLeft = false;
-
-		//Initialize PID
-		driveSystem->SetPIDDrive(PID_CONFIG);
-		//Set Wheel Diameter
-		driveSystem->SetWheelDiameter(WHEEL_DIAMETER);
-		// start recording the distance traveled
-		driveSystem->StartRecordingDistance();
 	}
 
 	void TeleopPeriodic()

@@ -44,6 +44,9 @@
 #define INTAKES_ON_BUTTON					2
 #define INTAKES_OFF_BUTTON					3
 
+//IMU Reset
+#define IMU_YAW_RESET						1
+
 //drive wheel buttons
 #define DRIVE_NUDGE_LEFT_BUTTON				5
 #define DRIVE_NUDGE_RIGHT_BUTTON			6
