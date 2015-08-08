@@ -1,10 +1,10 @@
 #include "WPILib.h"
-#include CamSystem.h
+#include "CamSystem.h"
 
 class Robot: public IterativeRobot
 {
 private:
-	CameraSystem  *cameraSystem;
+
 
 
 	void RobotInit()
@@ -24,7 +24,13 @@ private:
 
 	void TeleopInit()
 	{
+		CamSystem  cameraSystem;
+		char myString[64];
 
+
+		cameraSystem.Scan();
+//		sprintf(myString, "Distance: %f units?", cameraSystem.GetDistance());
+//		SmartDashboard::PutString("DB/String 0", myString);
 	}
 
 	void TeleopPeriodic()
@@ -34,7 +40,7 @@ private:
 
 	void TestPeriodic()
 	{
-		lw->Run();
+//		lw->Run();
 	}
 };
 
