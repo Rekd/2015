@@ -20,6 +20,7 @@ public:
 	virtual ~LiftSystem();
 	void Update();
 
+
 private:
 // local motors, switches and joysticks
 	CANSpeedController	*liftMotorBack, *liftMotorFront, *leftIntakeMotor, *rightIntakeMotor;
@@ -38,11 +39,12 @@ private:
 
 	//prototypes
 	float DistToSetpoint();
-	bool GetLiftLimitSwitchLow();
-	bool GetLiftLimitSwitchHigh();
+
 	void SetLiftMotor(float val);
 	bool CheckInakeMotorsCurrentSpike();
 	bool IsButtonPressed(int button);
+	bool GetLiftLimitSwitchLow();
+	bool GetLiftLimitSwitchHigh();
 	void IntakesIn();
 	void IntakesOut();
 	void IntakesOff();

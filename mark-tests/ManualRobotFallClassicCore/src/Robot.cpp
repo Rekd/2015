@@ -230,7 +230,28 @@ private:
 
 	void TestPeriodic()
 	{
-		//not used
+#if 0 // for limit switch testing
+		if (liftSystem->GetLiftLimitSwitchLow())
+		{
+			sprintf(myString, "L limit closed\n");
+			SmartDashboard::PutString("DB/String 0", myString);
+		}
+		else
+		{
+			sprintf(myString, "L limit open\n");
+			SmartDashboard::PutString("DB/String 0", myString);
+		}
+		if (liftSystem->GetLiftLimitSwitchHigh())
+		{
+			sprintf(myString, "H limit closed\n");
+			SmartDashboard::PutString("DB/String 1", myString);
+		}
+		else
+		{
+			sprintf(myString, "H limit open\n");
+			SmartDashboard::PutString("DB/String 1", myString);
+		}
+#endif
 	}
 
 public:

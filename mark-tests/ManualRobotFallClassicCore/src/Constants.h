@@ -26,7 +26,7 @@
 #define CHAN_LIFT_MOTOR_BACK 				12
 #define CHAN_LIFT_MOTOR_FRONT				14
 #define CHAN_L_INTAKE_MOTOR					10
-#define CHAN_R_INTAKE_MOTOR					11
+#define CHAN_R_INTAKE_MOTOR					13
 
 //usb channels
 #define CHAN_DRIVE_JS						0

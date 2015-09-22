@@ -89,6 +89,7 @@ void LiftSystem::IntakesOff()
 //Main
 void LiftSystem::Update()
 {
+	char myString[64]; //for debugging
 	//intakes
 	if(IsButtonPressed(INTAKES_IN_BUTTON))
 		IntakesIn();
@@ -105,6 +106,8 @@ void LiftSystem::Update()
 	//move the lift away from the top
 	if(atTop)
 	{
+		sprintf(myString, "lift stopped at ul\n");
+		SmartDashboard::PutString("DB/String 0", myString);
 		curLiftPos = liftEncoder->GetDistance();
 		targetLiftPos = curLiftPos - HALF_INCH_OFFSET;
 		controlLiftBack->Enable();
@@ -152,11 +155,24 @@ void LiftSystem::Update()
 
 			//manual control
 			if ((liftDir > ZERO_FL) && !GetLiftLimitSwitchHigh() && !atTop)  // move up
+			{
 				SetLiftMotor(LIFT_MOTOR_REV_STATE*LIFT_MOTOR_SPEED_UP);
+				sprintf(myString, "lift moving up\n");
+				SmartDashboard::PutString("DB/String 0", myString);
+			}
+
 			else if((liftDir < ZERO_FL) && !GetLiftLimitSwitchLow())  // move down
+			{
 				SetLiftMotor(LIFT_MOTOR_REV_STATE*LIFT_MOTOR_SPEED_DOWN); //fixed lift down speed
+				sprintf(myString, "lift moving down\n");
+				SmartDashboard::PutString("DB/String 0", myString);
+			}
 			else
+			{
 				SetLiftMotor(MOTOR_STOP); //stop
+				sprintf(myString, "lift stopped at ll\n");
+				SmartDashboard::PutString("DB/String 0", myString);
+			}
 		}
 	}
 }
