@@ -1,0 +1,27 @@
+Tune in the order listed below
+
+//motor reverse states
+LIFT_MOTOR_REV_STATE
+LEFT_INTAKE_MOTOR_REV_STATE
+RIGHT_INTAKE_MOTOR_REV_STATE
+
+//lift speed tuning
+LIFT_MOTOR_SPEED_DOWN
+
+//lift position tuning
+LIFT_LOW_POS_OFFSET
+LIFT_STEP_POS_OFFSET
+LIFT_HIGH_POS_OFFSET
+LIFT_PID_ERR_TOL
+
+//intake speed tuning
+INTAKE_IN_MOTOR_SPEED
+INTAKE_OUT_MOTOR_SPEED
+
+//intake current monitoring tuning
+INTAKE_CURRENT_LIMIT
+
+//lift PID tuning
+LIFT_PROPORTIONAL_TERM
+LIFT_INTEGRAL_TERM
+LIFT_DIFFERENTIAL_TERM
