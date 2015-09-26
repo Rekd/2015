@@ -176,7 +176,7 @@ class DriveSystem {
 
     
     void SetMotorSpeedLeft(float speed) {
-    	char myString[64];
+ //   	char myString[64];
 
         if (pidDrive) {
     		//sprintf(myString, "pid SP L: %5.2f\n", -speed);
@@ -190,7 +190,7 @@ class DriveSystem {
     }
     
     void SetMotorSpeedRight(float speed) {
-    	char myString[64];
+ //   	char myString[64];
 
         if (pidDrive) {
     		//sprintf(myString, "pid SP R: %5.2f\n", speed);

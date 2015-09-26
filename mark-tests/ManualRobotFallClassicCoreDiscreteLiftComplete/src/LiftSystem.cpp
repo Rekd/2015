@@ -45,6 +45,56 @@ bool LiftSystem::IsLiftInitDone()
 	return liftInitDone;
 }
 
+void LiftSystem::IntakesIn()
+{
+	leftIntakeMotor->Set(LEFT_INTAKE_MOTOR_REV_STATE*INTAKE_IN_MOTOR_SPEED);
+	rightIntakeMotor->Set(RIGHT_INTAKE_MOTOR_REV_STATE*INTAKE_IN_MOTOR_SPEED);
+}
+
+void LiftSystem::IntakesOut()
+{
+	leftIntakeMotor->Set(LEFT_INTAKE_MOTOR_REV_STATE*INTAKE_OUT_MOTOR_SPEED);
+	rightIntakeMotor->Set(RIGHT_INTAKE_MOTOR_REV_STATE*INTAKE_OUT_MOTOR_SPEED);
+}
+
+void LiftSystem::IntakesOff()
+{
+	leftIntakeMotor->Set(MOTOR_STOP);
+	rightIntakeMotor->Set(MOTOR_STOP);
+}
+
+void LiftSystem::setLiftStateLow()
+{
+	controlLiftBack->SetSetpoint(liftRefPos + LIFT_LOW_POS_OFFSET);
+	controlLiftFront->SetSetpoint(liftRefPos + LIFT_LOW_POS_OFFSET);
+	liftStateGoal = LOW;
+	return;
+}
+
+
+void LiftSystem::setLiftStateStep()
+{
+	controlLiftBack->SetSetpoint(liftRefPos + LIFT_STEP_POS_OFFSET);
+	controlLiftFront->SetSetpoint(liftRefPos + LIFT_STEP_POS_OFFSET);
+	liftStateGoal = STEP;
+}
+
+
+void LiftSystem::setLiftStateHigh()
+{
+	controlLiftBack->SetSetpoint(liftRefPos + LIFT_HIGH_POS_OFFSET);
+	controlLiftFront->SetSetpoint(liftRefPos + LIFT_HIGH_POS_OFFSET);
+	liftStateGoal = HIGH;
+}
+
+void LiftSystem::setLiftStatePickup()
+{
+	setLiftStateLow();
+	pickupInProgress = true;
+
+}
+
+
 void LiftSystem::Update()
 {
 	if(liftFailure)
@@ -66,22 +116,19 @@ void LiftSystem::Update()
 			liftInitDone = true;
 
 			//enable lift pid and go to the low position
+			setLiftStateLow();
 			controlLiftBack->Enable();
-			controlLiftBack->SetSetpoint(liftRefPos + LIFT_LOW_POS_OFFSET);
 			controlLiftFront->Enable();
-			controlLiftFront->SetSetpoint(liftRefPos + LIFT_LOW_POS_OFFSET);
-
-			liftStateGoal = LOW;
 		}
 	}
 	else //lift position has been initialized
 	{
 		//intakes
-		if(IsButtonPressed(INTAKES_IN_BUTTON))
+		if (IsButtonPressed(INTAKES_IN_BUTTON) && liftStateGoal==HIGH)
 			IntakesIn();
-		if(IsButtonPressed(INTAKES_OUT_BUTTON))
+		if(IsButtonPressed(INTAKES_OUT_BUTTON) && ((liftStateGoal==LOW) || (liftStateGoal==STEP)))
 			IntakesOut();
-		if(IsButtonPressed(INTAKES_OFF_BUTTON) || CheckInakeMotorsCurrentSpike())
+		if(IsButtonPressed(INTAKES_OFF_BUTTON) || CheckIntakeMotorsCurrentSpike())
 			IntakesOff();
 
 		//lift
@@ -102,43 +149,20 @@ void LiftSystem::Update()
 			if(!pickupInProgress) //pickup not in progress
 			{
 				if(IsButtonPressed(LIFT_LOW_POS_BUTTON) && !(liftStateGoal == STEP)) //do not allow lift motion down if the current liftStateGoal is the STEP
-				{
-					controlLiftBack->SetSetpoint(liftRefPos + LIFT_LOW_POS_OFFSET);
-					controlLiftFront->SetSetpoint(liftRefPos + LIFT_LOW_POS_OFFSET);
-					liftStateGoal = LOW;
-				}
+					setLiftStateLow();
 				else if(IsButtonPressed(LIFT_STEP_POS_BUTTON))
-				{
-					controlLiftBack->SetSetpoint(liftRefPos + LIFT_STEP_POS_OFFSET);
-					controlLiftFront->SetSetpoint(liftRefPos + LIFT_STEP_POS_OFFSET);
-					liftStateGoal = STEP;
-				}
+					setLiftStateStep();
 				else if(IsButtonPressed(LIFT_HIGH_POS_BUTTON))
-				{
-					controlLiftBack->SetSetpoint(liftRefPos + LIFT_HIGH_POS_OFFSET);
-					controlLiftFront->SetSetpoint(liftRefPos + LIFT_HIGH_POS_OFFSET);
-					liftStateGoal = HIGH;
-				}
+					setLiftStateHigh();
 				else if(IsButtonPressed(LIFT_PICKUP_BUTTON) && (liftStateGoal == HIGH) && !(liftStateGoal == STEP)) //do not allow lift motion down if the current liftStateGoal is the STEP
-				{
-					controlLiftBack->SetSetpoint(liftRefPos + LIFT_LOW_POS_OFFSET);
-					controlLiftFront->SetSetpoint(liftRefPos + LIFT_LOW_POS_OFFSET);
-					pickupInProgress = true;
-					liftStateGoal = LOW;
-				}
+					setLiftStatePickup();
 			}
 			else //pickup in progress
 			{
 				if(liftStateGoal == LOW && (LiftOnTarget(controlLiftBack, liftEncoder) || LiftOnTarget(controlLiftFront, liftEncoder)))
-				{
-					controlLiftBack->SetSetpoint(liftRefPos + LIFT_HIGH_POS_OFFSET);
-					controlLiftFront->SetSetpoint(liftRefPos + LIFT_HIGH_POS_OFFSET);
-					liftStateGoal = HIGH;
-				}
+					setLiftStateHigh();
 				else if(liftStateGoal == HIGH && (LiftOnTarget(controlLiftBack, liftEncoder) || LiftOnTarget(controlLiftFront, liftEncoder)))
-				{
 					pickupInProgress = false;
-				}
 			} //end pickup check
 		} //end initial lift failure identification check
 	} //end lift initialization check
@@ -174,7 +198,7 @@ void LiftSystem::SetLiftMotor(float val)
 	liftMotorFront->Set(LIFT_MOTOR_REV_STATE*val);
 }
 
-bool LiftSystem::CheckInakeMotorsCurrentSpike()
+bool LiftSystem::CheckIntakeMotorsCurrentSpike()
 {
 	if ((leftIntakeMotor->GetOutputCurrent() > INTAKE_CURRENT_LIMIT) || (rightIntakeMotor->GetOutputCurrent() > INTAKE_CURRENT_LIMIT))
 		return(true);
@@ -187,20 +211,4 @@ bool LiftSystem::IsButtonPressed(int button)
 	return(liftSysJoystick->GetRawButton(button));
 }
 
-void LiftSystem::IntakesIn()
-{
-	leftIntakeMotor->Set(LEFT_INTAKE_MOTOR_REV_STATE*INTAKE_IN_MOTOR_SPEED);
-	rightIntakeMotor->Set(RIGHT_INTAKE_MOTOR_REV_STATE*INTAKE_IN_MOTOR_SPEED);
-}
 
-void LiftSystem::IntakesOut()
-{
-	leftIntakeMotor->Set(LEFT_INTAKE_MOTOR_REV_STATE*INTAKE_OUT_MOTOR_SPEED);
-	rightIntakeMotor->Set(RIGHT_INTAKE_MOTOR_REV_STATE*INTAKE_OUT_MOTOR_SPEED);
-}
-
-void LiftSystem::IntakesOff()
-{
-	leftIntakeMotor->Set(MOTOR_STOP);
-	rightIntakeMotor->Set(MOTOR_STOP);
-}

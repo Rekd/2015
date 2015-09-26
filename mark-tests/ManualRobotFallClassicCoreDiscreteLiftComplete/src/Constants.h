@@ -59,19 +59,29 @@
 #define POS_NUDGE_DIFFERENTIAL_TERM          0.0f
 #endif
 
+//positional PID parameters for autonomous
+#define POS_ERR_TOL							0.08 //this is a percentage
+#define POS_TOL_COMP						0.0025 //this is a tuned value
+#define POS_PROPORTIONAL_TERM          		0.8f
+#define POS_INTEGRAL_TERM               	0.05f
+#define POS_DIFFERENTIAL_TERM          		0.0f
+#define ROT_PROPORTIONAL_TERM          		4.4f
+#define ROT_INTEGRAL_TERM               	0.09f
+#define ROT_DIFFERENTIAL_TERM          		0.0f
+
 //lift PID parameters
 #define LIFT_ENCODER_RESOLUTION 			1024
 #define LIFT_ENCODER_DIST_PER_PULSE 		(1.0/LIFT_ENCODER_RESOLUTION)
 #define LIFT_PROPORTIONAL_TERM           	2.0
 #define LIFT_INTEGRAL_TERM               	0.5
 #define LIFT_DIFFERENTIAL_TERM           	0.001
-#define LIFT_PID_OUT_MIN					-0.1 //minimum controller output
+#define LIFT_PID_OUT_MIN					-0.7 //minimum controller output
 #define LIFT_PID_OUT_MAX					0.7 //maximum controller output
-#define HALF_INCH_OFFSET					0.056 //this offset to the lift encoder is a 1/2 in of vertical lift distance; used to prevent the lift from repeatedly hitting the top
-#define LIFT_LOW_POS_OFFSET					HALF_INCH_OFFSET //lift encoder low position offset from the lift reference
-#define LIFT_STEP_POS_OFFSET				6*(2*HALF_INCH_OFFSET) //lift encoder step position offset from the lift reference
-#define LIFT_HIGH_POS_OFFSET				11*(2*HALF_INCH_OFFSET)  //lift encoder high position offset from the lift reference
-#define LIFT_PID_ERR_TOL					0.5*HALF_INCH_OFFSET //allowable error tolerance for lift pid
+#define QUARTER_INCH_OFFSET					0.056 //this offset to the lift encoder is a 1/2 in of vertical lift distance; used to prevent the lift from repeatedly hitting the top
+#define LIFT_LOW_POS_OFFSET					QUARTER_INCH_OFFSET //lift encoder low position offset from the lift reference
+#define LIFT_STEP_POS_OFFSET				8*(4*QUARTER_INCH_OFFSET) //lift encoder step position offset from the lift reference
+#define LIFT_HIGH_POS_OFFSET				15*(4*QUARTER_INCH_OFFSET)  //lift encoder high position offset from the lift reference
+#define LIFT_PID_ERR_TOL					0.5*QUARTER_INCH_OFFSET //allowable error tolerance for lift pid
 
 //drive control
 #define DRIVE_ENCODER_RESOLUTION			1024.0
@@ -100,6 +110,13 @@
 #define GLOBAL_DRIVE_PID_ON					true
 #define GLOBAL_DRIVE_PID_CONFIG				GLOBAL_DRIVE_PID_ON
 
+// autonomous
+#define AUTONOMOUS_MAX_FORWARD_SPEED 		0.2 //signed
+#define AUTONOMOUS_MAX_REVERSE_SPEED		-0.2 //signed
+#define AUTONOMOUS_MOVE_DIST				-0.73*1.2 //tire revolutions; for 4 in wheels ~6 feet; - for backwards, + for forwards
+#define AUTONMOUS_MOVE_DIST_TO_AZ           -0.73*1.2 // just a SWAG for now
+#define AUTONMOUS_MOVE_DIST_AZ              -0.73*1.2
+
 //nudge
 #define NUDGE_MAX_FORWARD_SPEED				0.4 //signed
 #define NUDGE_MAX_REVERSE_SPEED				-0.4 //signed
@@ -116,9 +133,9 @@
 #define LIFT_MOTOR_REV_STATE				MOTOR_NOT_REV //both the back and forward lift motors are physically installed in the same direction and should be wired the same (i.e. some polarity) so they should rotate in the same direction and only 1 parameter is thus needed to set the reverse state for both
 #define LEFT_INTAKE_MOTOR_REV_STATE			MOTOR_REV
 #define RIGHT_INTAKE_MOTOR_REV_STATE		MOTOR_NOT_REV
-#define INTAKE_IN_MOTOR_SPEED				0.3 //signed
+#define INTAKE_IN_MOTOR_SPEED				0.5 //signed
 #define INTAKE_OUT_MOTOR_SPEED				-0.3 //signed
-#define LIFT_MOTOR_SPEED_DOWN				-0.2 //signed
+#define LIFT_MOTOR_SPEED_DOWN				-0.3 //signed
 #define LIFT_DB_LOW 						-0.2 //lift deadband low limit (not inclusive)
 #define LIFT_DB_HIGH 						0.2 //lift deadband high limit (not inclusive)
 

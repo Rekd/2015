@@ -20,6 +20,13 @@ public:
 	virtual ~LiftSystem();
 	bool IsLiftInitDone();
 	void Update();
+	void IntakesIn();
+	void IntakesOut();
+	void IntakesOff();
+	void setLiftStateLow();
+	void setLiftStateStep();
+	void setLiftStateHigh();
+	void setLiftStatePickup();
 
 private:
 // local motors, switches and joysticks
@@ -28,6 +35,8 @@ private:
 	Encoder *liftEncoder;
 	PIDController *controlLiftBack, *controlLiftFront;
 	Joystick    *liftSysJoystick;
+
+
 
 // other private variables
 	bool liftInitDone; //indication of whether the lift has completed its initialization (i.e.initialized the absolute encoder)
@@ -42,11 +51,9 @@ private:
 	bool GetLiftLimitSwitchLow();
 	bool GetLiftLimitSwitchHigh();
 	void SetLiftMotor(float val);
-	bool CheckInakeMotorsCurrentSpike();
+	bool CheckIntakeMotorsCurrentSpike();
 	bool IsButtonPressed(int button);
-	void IntakesIn();
-	void IntakesOut();
-	void IntakesOff();
+
 };
 
 #endif /* LIFTSYSTEM_H_ */
