@@ -68,7 +68,6 @@ void LiftSystem::setLiftStateLow()
 	controlLiftBack->SetSetpoint(liftRefPos + LIFT_LOW_POS_OFFSET);
 	controlLiftFront->SetSetpoint(liftRefPos + LIFT_LOW_POS_OFFSET);
 	liftStateGoal = LOW;
-	return;
 }
 
 
@@ -126,7 +125,7 @@ void LiftSystem::Update()
 		//intakes
 		if (IsButtonPressed(INTAKES_IN_BUTTON) && liftStateGoal==HIGH)
 			IntakesIn();
-		if(IsButtonPressed(INTAKES_OUT_BUTTON) && ((liftStateGoal==LOW) || (liftStateGoal==STEP)))
+		if(IsButtonPressed(INTAKES_OUT_BUTTON))
 			IntakesOut();
 		if(IsButtonPressed(INTAKES_OFF_BUTTON) || CheckIntakeMotorsCurrentSpike())
 			IntakesOff();
@@ -154,7 +153,7 @@ void LiftSystem::Update()
 					setLiftStateStep();
 				else if(IsButtonPressed(LIFT_HIGH_POS_BUTTON))
 					setLiftStateHigh();
-				else if(IsButtonPressed(LIFT_PICKUP_BUTTON) && (liftStateGoal == HIGH) && !(liftStateGoal == STEP)) //do not allow lift motion down if the current liftStateGoal is the STEP
+				else if(IsButtonPressed(LIFT_PICKUP_BUTTON) && (liftStateGoal == HIGH)) //do not allow lift motion down if the current liftStateGoal is the STEP
 					setLiftStatePickup();
 			}
 			else //pickup in progress

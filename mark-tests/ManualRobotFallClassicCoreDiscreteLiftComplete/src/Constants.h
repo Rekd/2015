@@ -40,8 +40,8 @@
 #define DRIVE_NUDGE_RIGHT_BUTTON			5
 
 //lift joystick buttons
-#define INTAKES_IN_BUTTON					3
-#define INTAKES_OUT_BUTTON					2
+#define INTAKES_IN_BUTTON					2
+#define INTAKES_OUT_BUTTON					3
 #define INTAKES_OFF_BUTTON					1
 #define LIFT_LOW_POS_BUTTON					7
 #define LIFT_STEP_POS_BUTTON				10
@@ -111,11 +111,16 @@
 #define GLOBAL_DRIVE_PID_CONFIG				GLOBAL_DRIVE_PID_ON
 
 // autonomous
-#define AUTONOMOUS_MAX_FORWARD_SPEED 		0.2 //signed
-#define AUTONOMOUS_MAX_REVERSE_SPEED		-0.2 //signed
-#define AUTONOMOUS_MOVE_DIST				-0.73*1.2 //tire revolutions; for 4 in wheels ~6 feet; - for backwards, + for forwards
-#define AUTONMOUS_MOVE_DIST_TO_AZ           -0.73*1.2 // just a SWAG for now
-#define AUTONMOUS_MOVE_DIST_AZ              -0.73*1.2
+#define AUTONOMOUS_ON						false
+#define AUTONOMOUS_MAX_FORWARD_SPEED 		0.35 //signed
+#define AUTONOMOUS_MAX_REVERSE_SPEED		-0.35 //signed
+#define AUTONOMOUS_MOVE_1INCH				-0.08//tire revolutions
+#define AUTONOMOUS_MOVE_0_DIST				33*AUTONOMOUS_MOVE_1INCH
+#define AUTONOMOUS_MOVE_1_DIST				14*AUTONOMOUS_MOVE_1INCH
+#define AUTONOMOUS_MOVE_2_DIST				72*AUTONOMOUS_MOVE_1INCH
+#define AUTONOMOUS_MOVE_3_DIST				72*AUTONOMOUS_MOVE_1INCH
+#define AUTONOMOUS_MOVE_4_DIST				92*AUTONOMOUS_MOVE_1INCH
+#define AUTONOMOUS_MOVE_5_DIST				28*AUTONOMOUS_MOVE_1INCH //do not invert sign; invert when used
 
 //nudge
 #define NUDGE_MAX_FORWARD_SPEED				0.4 //signed
@@ -124,15 +129,15 @@
 #define NUDGE_PID_ERR_TOL					0.08 //allowable error tolerance for nudge pid
 
 //current monitoring
-#define INTAKE_CURRENT_LIMIT				10 //amps (not inclusive) - This is currently a conservative guess based on what we used for the fork current limit during competition season; this needs to be tuned
+#define INTAKE_CURRENT_LIMIT				15 //amps (not inclusive) - This is currently a conservative guess based on what we used for the fork current limit during competition season; this needs to be tuned
 
 //non-drive motor configuration
 #define MOTOR_REV							-1
 #define MOTOR_NOT_REV						1
 #define MOTOR_STOP							ZERO_FL
 #define LIFT_MOTOR_REV_STATE				MOTOR_NOT_REV //both the back and forward lift motors are physically installed in the same direction and should be wired the same (i.e. some polarity) so they should rotate in the same direction and only 1 parameter is thus needed to set the reverse state for both
-#define LEFT_INTAKE_MOTOR_REV_STATE			MOTOR_REV
-#define RIGHT_INTAKE_MOTOR_REV_STATE		MOTOR_NOT_REV
+#define LEFT_INTAKE_MOTOR_REV_STATE			MOTOR_NOT_REV
+#define RIGHT_INTAKE_MOTOR_REV_STATE		MOTOR_REV
 #define INTAKE_IN_MOTOR_SPEED				0.5 //signed
 #define INTAKE_OUT_MOTOR_SPEED				-0.3 //signed
 #define LIFT_MOTOR_SPEED_DOWN				-0.3 //signed

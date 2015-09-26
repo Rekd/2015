@@ -129,15 +129,15 @@ private:
 	 * move_5:  start intakes out, eject totes while moving backwards
 	 * end:  stop motion
 	 */
-		enum {start, move_1, rot_1, rot_2, move_2, rot_3, rot_4,
+		enum {start, move_0, rot_0, move_1, rot_1, rot_2, move_2, rot_3, rot_4,
 			move_3, rot_5, move_4, rot_6, move_5, end} autonomousDriveState;
 		enum commandLiftDir {raise, lower} ;
+		float target;
 
 		NetworkTable *table;
 		SerialPort *serial_port;
 		IMU *imu;
 		bool first_iteration;
-		bool liftCheck = false;  // flag to indicate that we can start doing lift update
 
 	void RobotInit()
 	{
@@ -148,14 +148,16 @@ private:
 
 	void AutonomousInit()
 	{
-#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
+#if AUTONOMOUS_ON
 		autonomousDriveState = start;
 		imu->ZeroYaw();
+		target = 0.0;
 #endif
 	}
 
 	void outputAutoStatus(const char* state)
 	{
+		SmartDashboard::PutString("State:", state);
 		SmartDashboard::PutNumber("Left Setpoint: ", controlPosLeft->GetSetpoint());
 		SmartDashboard::PutNumber("Left Encoder: ", leftEncoder->PIDGet());
 		SmartDashboard::PutNumber("Right Setpoint", controlPosRight->GetSetpoint());
@@ -172,7 +174,8 @@ private:
 
 	void rotLeft30(float *target)
 	{
-		liftSystem->IntakesOut(); // start intakes rolling out
+		//liftSystem->IntakesOut(); // start intakes rolling out
+		liftSystem->IntakesOff(); // stop intakes
 		controlPosLeft->Disable();  // disable the drive PID controllers
 		controlPosRight->Disable();
 		*target = -30.0;
@@ -185,7 +188,7 @@ private:
 
 	void rotRight30(float *target)
 	{
-		liftSystem->IntakesOff(); // stop intakes
+		//liftSystem->IntakesOff(); // stop intakes
 		//controlRotLeft->Disable();
 		//controlRotRight->Disable();
 		*target = 0.0f;
@@ -200,188 +203,208 @@ private:
 	{
 		liftSystem->IntakesOff(); // stop intakes
 		if (dir == raise)
+		{
 			liftSystem->setLiftStatePickup();
+			*target = 90.0f;
+		}
 		else
+		{
 			liftSystem->setLiftStateLow();
-		//controlRotLeft->Disable();
-		//controlRotRight->Disable();
-		*target = 0.0f;
+			*target = 179.0f; //set to a number <180 to avoid rollovers
+		}
+		controlPosLeft->Disable();  // disable the drive PID controllers
+		controlPosRight->Disable();
 		controlRotLeft->SetSetpoint(*target);
 		controlRotRight->SetSetpoint(*target);
-		//controlRotLeft->Enable();
-		//controlRotRight->Enable();
+		controlRotLeft->Enable();
+		controlRotRight->Enable();
 		return;
 	}
 
-	void moveToNextTote()
+	void moveToNextTote(float dist)
 	{
 		liftSystem->IntakesIn(); // start intakes in
 		controlRotLeft->Disable();  // disable the drive PID controllers
 		controlRotRight->Disable();
 		leftEncoder->Reset();
 		rightEncoder->Reset();
-		controlPosLeft->SetSetpoint(-AUTONOMOUS_MOVE_DIST);
-		controlPosRight->SetSetpoint(AUTONOMOUS_MOVE_DIST);
+		controlPosLeft->SetSetpoint(-dist);
+		controlPosRight->SetSetpoint(dist);
 		controlPosLeft->Enable();
 		controlPosRight->Enable();
 		return;
 	}
+
 	void AutonomousPeriodic()
 	{
-#if 0 // this is what Jeff originally had in here
+#if AUTONOMOUS_ON
 		if(!(liftSystem->IsLiftInitDone()))
-			liftSystem->Update();
+			liftSystem->Update(); //perform lift initialization
 		else
 		{
-			//not used
-		}
-#endif
-#if BUILD_VER == COMPETITION || BUILD_VER == PRACTICE
-		float target = 0.0;
-
-//		liftSystem->UpdateAuto();
-
-// Autonomous state machine
-		switch(autonomousDriveState)
-		{
-		case start:
-			moveToNextTote();
-			autonomousDriveState = move_1;
-			break;
-
-		case move_1:
-			outputAutoStatus("move_1");
-			if ((myOnTarget(controlPosLeft, leftEncoder)) && (myOnTarget(controlPosRight, rightEncoder)))
+			// Autonomous state machine
+			switch(autonomousDriveState)
 			{
-				rotLeft30(&target);
-				liftCheck = true;
-				autonomousDriveState = rot_1;
-			}
-			break;
+				case start:
+					moveToNextTote(AUTONOMOUS_MOVE_0_DIST);
+					autonomousDriveState = move_0;
+					break;
 
-		case rot_1:
-			outputAutoRotStatus("rot_1", target);
-			if ((myOnTarget(controlRotLeft, imu)) && (myOnTarget(controlRotRight, imu)))
-			{
-				rotRight30(&target);
-				liftSystem->setLiftStatePickup();
-				autonomousDriveState = rot_2;
-			}
-			break;
+				case move_0:
+					outputAutoStatus("move_0");
+					if ((myOnTarget(controlPosLeft, leftEncoder)) || (myOnTarget(controlPosRight, rightEncoder)))
+					{
+						//move this into a function later
+						liftSystem->IntakesOff(); // stop intakes
+						controlPosLeft->Disable();  // disable the drive PID controllers
+						controlPosRight->Disable();
+						target = 35.0; //deg
+						controlRotLeft->SetSetpoint(target);
+						controlRotRight->SetSetpoint(target);
+						controlRotLeft->Enable(); // enable the rotation PID controllers
+						controlRotRight->Enable();
+						autonomousDriveState = rot_0;
+					}
+					break;
 
-		case rot_2:
-			outputAutoRotStatus("rot_2", target);
-			if ((myOnTarget(controlRotLeft, imu)) && (myOnTarget(controlRotRight, imu)))
-			{
-				moveToNextTote();
-				autonomousDriveState = move_2;
-			}
-			break;
+				case rot_0:
+					outputAutoRotStatus("rot_0", target);
+					if ((myOnTarget(controlRotLeft, imu)) || (myOnTarget(controlRotRight, imu)))
+					{
+						moveToNextTote(AUTONOMOUS_MOVE_1_DIST);
+						autonomousDriveState = move_1;
+						imu->ZeroYaw(); //this is a hack so that the existing rotate functions (e.g. rotLeft30) will continue to work
+					}
+					break;
 
-		case move_2:
-			outputAutoStatus("move_2");
-			if ((myOnTarget(controlPosLeft, leftEncoder)) && (myOnTarget(controlPosRight, rightEncoder)))
-			{
-				rotLeft30(&target);
-				autonomousDriveState = rot_3;
-			}
-			break;
+				case move_1:
+					outputAutoStatus("move_1");
+					if ((myOnTarget(controlPosLeft, leftEncoder)) || (myOnTarget(controlPosRight, rightEncoder)))
+					{
+						rotLeft30(&target);
+						autonomousDriveState = rot_1;
+					}
+					break;
 
-		case rot_3:
-			outputAutoRotStatus("rot_3", target);
-			if ((myOnTarget(controlRotLeft, imu)) && (myOnTarget(controlRotRight, imu)))
-			{
-				rotRight30(&target);
-				liftSystem->setLiftStatePickup();
-				autonomousDriveState = rot_4;
-			}
-			break;
+				case rot_1:
+					outputAutoRotStatus("rot_1", target);
+					if ((myOnTarget(controlRotLeft, imu)) || (myOnTarget(controlRotRight, imu)))
+					{
+						rotRight30(&target);
+						liftSystem->setLiftStatePickup();
+						autonomousDriveState = rot_2;
+					}
+					break;
 
-		case rot_4:
-			outputAutoRotStatus("rot_4", target);
-			if ((myOnTarget(controlRotLeft, imu)) && (myOnTarget(controlRotRight, imu)))
-			{
-				moveToNextTote();
-				autonomousDriveState = move_3;
-			}
-			break;
+				case rot_2:
+					outputAutoRotStatus("rot_2", target);
+					if ((myOnTarget(controlRotLeft, imu)) || (myOnTarget(controlRotRight, imu)))
+					{
+						moveToNextTote(AUTONOMOUS_MOVE_2_DIST);
+						autonomousDriveState = move_2;
+					}
+					break;
 
-		case move_3:
-			outputAutoStatus("move_3");
-			if ((myOnTarget(controlPosLeft, leftEncoder)) && (myOnTarget(controlPosRight, rightEncoder)))
-			{
-				rotRight90(raise, &target); // rotate 90 deg and do pickup
-				autonomousDriveState = rot_5;
-			}
-			break;
+				case move_2:
+					outputAutoStatus("move_2");
+					if ((myOnTarget(controlPosLeft, leftEncoder)) || (myOnTarget(controlPosRight, rightEncoder)))
+					{
+						rotLeft30(&target);
+						autonomousDriveState = rot_3;
+					}
+					break;
 
-		case rot_5:
-			outputAutoRotStatus("rot_5", target);
-			if ((myOnTarget(controlRotLeft, imu)) && (myOnTarget(controlRotRight, imu)))
-			{
-				controlRotLeft->Disable();  // disable the drive PID controllers
-				controlRotRight->Disable();
-				leftEncoder->Reset();
-				rightEncoder->Reset();
-				controlPosLeft->SetSetpoint(-AUTONMOUS_MOVE_DIST_TO_AZ);  // need to add this constant
-				controlPosRight->SetSetpoint(AUTONMOUS_MOVE_DIST_TO_AZ);
-				controlPosLeft->Enable();
-				controlPosRight->Enable();
-				autonomousDriveState = move_4;
-			}
-			break;
+				case rot_3:
+					outputAutoRotStatus("rot_3", target);
+					if ((myOnTarget(controlRotLeft, imu)) || (myOnTarget(controlRotRight, imu)))
+					{
+						rotRight30(&target);
+						liftSystem->setLiftStatePickup();
+						autonomousDriveState = rot_4;
+					}
+					break;
 
-		case move_4:
-			outputAutoStatus("move_4");
-			if ((myOnTarget(controlPosLeft, leftEncoder)) && (myOnTarget(controlPosRight, rightEncoder)))
-			{
-				rotRight90(lower, &target); // rotate 90 deg and lower stack
-				autonomousDriveState = rot_6;
-			}
-			break;
+				case rot_4:
+					outputAutoRotStatus("rot_4", target);
+					if ((myOnTarget(controlRotLeft, imu)) || (myOnTarget(controlRotRight, imu)))
+					{
+						moveToNextTote(AUTONOMOUS_MOVE_3_DIST);
+						autonomousDriveState = move_3;
+					}
+					break;
 
-		case rot_6:
-			outputAutoRotStatus("rot_6", target);
-			if ((myOnTarget(controlRotLeft, imu)) && (myOnTarget(controlRotRight, imu)))
-			{
-				liftSystem->IntakesOut();  // eject the stack and back up
-				controlRotLeft->Disable();  // disable the drive PID controllers
-				controlRotRight->Disable();
-				leftEncoder->Reset();
-				rightEncoder->Reset();
-				controlPosLeft->SetSetpoint(-AUTONMOUS_MOVE_DIST_AZ);  // need to add this constant
-				controlPosRight->SetSetpoint(AUTONMOUS_MOVE_DIST_AZ);
-				controlPosLeft->Enable();
-				controlPosRight->Enable();
-				autonomousDriveState = move_5;
-			}
-			break;
+				case move_3:
+					outputAutoStatus("move_3");
+					if ((myOnTarget(controlPosLeft, leftEncoder)) || (myOnTarget(controlPosRight, rightEncoder)))
+					{
+						rotRight90(raise, &target); // rotate 90 deg and do pickup
+						autonomousDriveState = rot_5;
+					}
+					break;
 
-		case move_5:
-			outputAutoStatus("move_5");
-			if ((myOnTarget(controlPosLeft, leftEncoder)) && (myOnTarget(controlPosRight, rightEncoder)))
-			{
-				controlPosLeft->Disable(); // stop all motion
-				controlPosRight->Disable();
-				// here raise lift to "high" to prepare for teleop
-				autonomousDriveState = end;
-			}
-			break;
+				case rot_5:
+					outputAutoRotStatus("rot_5", target);
+					if ((myOnTarget(controlRotLeft, imu)) || (myOnTarget(controlRotRight, imu)))
+					{
+						controlRotLeft->Disable();  // disable the drive PID controllers
+						controlRotRight->Disable();
+						leftEncoder->Reset();
+						rightEncoder->Reset();
+						controlPosLeft->SetSetpoint(-AUTONOMOUS_MOVE_4_DIST);  // move forwards
+						controlPosRight->SetSetpoint(AUTONOMOUS_MOVE_4_DIST);
+						controlPosLeft->Enable();
+						controlPosRight->Enable();
+						autonomousDriveState = move_4;
+					}
+					break;
 
-		case end:
-			outputAutoStatus("end");
-			break;  // do nothing
+				case move_4:
+					outputAutoStatus("move_4");
+					if ((myOnTarget(controlPosLeft, leftEncoder)) || (myOnTarget(controlPosRight, rightEncoder)))
+					{
+						rotRight90(lower, &target); // rotate 90 deg and lower stack
+						autonomousDriveState = rot_6;
+					}
+					break;
 
-		}
-		// Give lift instructions - only after giving time for initialization
-		// Note that this is a race condition, but it's an easy
-		// and quick way to implement this
-		if (liftCheck)
+				case rot_6:
+					outputAutoRotStatus("rot_6", target);
+					if ((myOnTarget(controlRotLeft, imu)) || (myOnTarget(controlRotRight, imu)))
+					{
+						liftSystem->IntakesOut();  // eject the stack and back up
+						controlRotLeft->Disable();  // disable the drive PID controllers
+						controlRotRight->Disable();
+						leftEncoder->Reset();
+						rightEncoder->Reset();
+						controlPosLeft->SetSetpoint(AUTONOMOUS_MOVE_5_DIST);  // move backwards
+						controlPosRight->SetSetpoint(-AUTONOMOUS_MOVE_5_DIST);
+						controlPosLeft->Enable();
+						controlPosRight->Enable();
+						autonomousDriveState = move_5;
+					}
+					break;
+
+				case move_5:
+					outputAutoStatus("move_5");
+					if ((myOnTarget(controlPosLeft, leftEncoder)) || (myOnTarget(controlPosRight, rightEncoder)))
+					{
+						liftSystem->IntakesOff();
+						controlPosLeft->Disable(); // stop all motion
+						controlPosRight->Disable();
+						liftSystem->setLiftStateHigh();
+						autonomousDriveState = end;
+					}
+					break;
+
+				case end:
+					outputAutoStatus("end");
+					break;  // do nothing
+			} //end switch on autonomous state
+
 			liftSystem->Update();
-
+		} //end check for lift init
 #endif
-
-	}
+	} //end autonomous periodic
 
 	void TeleopInit()
 	{
@@ -629,6 +652,7 @@ public:
 		controlRotLeft->SetContinuous(false);
 		controlRotLeft->SetInputRange(-180.0, 180.0);
 		controlRotLeft->SetOutputRange(AUTONOMOUS_MAX_REVERSE_SPEED, AUTONOMOUS_MAX_FORWARD_SPEED);
+		controlRotLeft->Disable();
 		LiveWindow::GetInstance()->AddSensor("L RD", "L RDrive", controlRotLeft);
 
 		controlRotRight = new PIDController(ROT_PROPORTIONAL_TERM, ROT_INTEGRAL_TERM,
@@ -636,6 +660,7 @@ public:
 		controlRotRight->SetContinuous(false);
 		controlRotRight->SetInputRange(-180.0, 180.0);
 		controlRotRight->SetOutputRange(AUTONOMOUS_MAX_REVERSE_SPEED, AUTONOMOUS_MAX_FORWARD_SPEED);
+		controlRotRight->Disable();
 		LiveWindow::GetInstance()->AddSensor("R RD", "R RDrive", controlRotRight);
         autonomousDriveState = start;
 	}
@@ -671,6 +696,12 @@ public:
 		delete controlLiftFront;
 		delete liftSysJoystick;
 		delete liftSystem;
+
+		// Linear Drive PID controllers for Autonomous
+		delete controlPosRight;
+		delete controlPosLeft;
+		delete controlRotRight;
+		delete controlRotLeft;
 	}
 };
 
