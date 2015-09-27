@@ -205,13 +205,14 @@ private:
 		if (dir == raise)
 		{
 			liftSystem->setLiftStatePickup();
-			*target = 90.0f;
+// not right			*target = 90.0f;
 		}
 		else
 		{
 			liftSystem->setLiftStateLow();
-			*target = 179.0f; //set to a number <180 to avoid rollovers
+// not right			*target = 179.0f; //set to a number <180 to avoid rollovers
 		}
+		*target = 90.0f;
 		controlPosLeft->Disable();  // disable the drive PID controllers
 		controlPosRight->Disable();
 		controlRotLeft->SetSetpoint(*target);
@@ -467,7 +468,7 @@ private:
 				controlPosNudgeLeft->Enable();
 				controlPosNudgeLeft->SetSetpoint(-NUDGE_MOVE_DIST);
 				controlPosNudgeRight->Enable();
-				controlPosNudgeRight->SetSetpoint(-NUDGE_MOVE_DIST);
+				controlPosNudgeRight->SetSetpoint(NUDGE_MOVE_DIST);  // was negative - not working
 			}
 			//determine if the nudge is complete
 			if ((nudgeOnTarget(controlPosNudgeLeft, leftEncoder)) || (nudgeOnTarget(controlPosNudgeRight, rightEncoder)))
@@ -491,7 +492,7 @@ private:
 				controlPosNudgeLeft->Enable();
 				controlPosNudgeLeft->SetSetpoint(NUDGE_MOVE_DIST);
 				controlPosNudgeRight->Enable();
-				controlPosNudgeRight->SetSetpoint(NUDGE_MOVE_DIST);
+				controlPosNudgeRight->SetSetpoint(-NUDGE_MOVE_DIST);  // was positive, not working
 			}
 			//determine if the nudge is complete
 			if ((nudgeOnTarget(controlPosNudgeLeft, leftEncoder)) || (nudgeOnTarget(controlPosNudgeRight, rightEncoder)))
