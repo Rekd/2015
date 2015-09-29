@@ -141,9 +141,9 @@ private:
 
 	void RobotInit()
 	{
-		CameraServer::GetInstance()->SetQuality(50);
+//		CameraServer::GetInstance()->SetQuality(50);
 		//the camera name (e.g. "cam0") can be found through the roborio web interface
-		CameraServer::GetInstance()->StartAutomaticCapture("cam1");
+//		CameraServer::GetInstance()->StartAutomaticCapture("cam1");
 	}
 
 	void AutonomousInit()
@@ -205,14 +205,19 @@ private:
 		if (dir == raise)
 		{
 			liftSystem->setLiftStatePickup();
-// not right			*target = 90.0f;
+			*target = 90.0f;
+
 		}
 		else
 		{
 			liftSystem->setLiftStateLow();
 // not right			*target = 179.0f; //set to a number <180 to avoid rollovers
+			*target = 180.0f - imu->GetYaw();
+			*target = 90.0f;  // temporary
+			imu->ZeroYaw();  // temporary
+
 		}
-		*target = 90.0f;
+
 		controlPosLeft->Disable();  // disable the drive PID controllers
 		controlPosRight->Disable();
 		controlRotLeft->SetSetpoint(*target);
@@ -247,8 +252,20 @@ private:
 			switch(autonomousDriveState)
 			{
 				case start:
+#if 0
 					moveToNextTote(AUTONOMOUS_MOVE_0_DIST);
 					autonomousDriveState = move_0;
+#endif
+// temporarily only move into auto zone
+					controlRotLeft->Disable();  // disable the drive PID controllers
+					controlRotRight->Disable();
+					leftEncoder->Reset();
+					rightEncoder->Reset();
+					controlPosLeft->SetSetpoint(-AUTONOMOUS_MOVE_4_DIST/2.0);  // move forwards
+					controlPosRight->SetSetpoint(AUTONOMOUS_MOVE_4_DIST/2.0);  // change back to 4 later
+					controlPosLeft->Enable();
+					controlPosRight->Enable();
+					autonomousDriveState = move_4;
 					break;
 
 				case move_0:
@@ -363,6 +380,8 @@ private:
 					outputAutoStatus("move_4");
 					if ((myOnTarget(controlPosLeft, leftEncoder)) || (myOnTarget(controlPosRight, rightEncoder)))
 					{
+						controlPosLeft->Disable(); // temp
+						controlPosRight->Disable();  // temp
 						rotRight90(lower, &target); // rotate 90 deg and lower stack
 						autonomousDriveState = rot_6;
 					}
@@ -372,16 +391,20 @@ private:
 					outputAutoRotStatus("rot_6", target);
 					if ((myOnTarget(controlRotLeft, imu)) || (myOnTarget(controlRotRight, imu)))
 					{
-						liftSystem->IntakesOut();  // eject the stack and back up
+						//liftSystem->IntakesOut();  // eject the stack and back up - temp
+						liftSystem->IntakesOff();
 						controlRotLeft->Disable();  // disable the drive PID controllers
 						controlRotRight->Disable();
 						leftEncoder->Reset();
 						rightEncoder->Reset();
 						controlPosLeft->SetSetpoint(AUTONOMOUS_MOVE_5_DIST);  // move backwards
 						controlPosRight->SetSetpoint(-AUTONOMOUS_MOVE_5_DIST);
-						controlPosLeft->Enable();
-						controlPosRight->Enable();
+						//controlPosLeft->Enable();
+						// controlPosRight->Enable();
+						controlPosLeft->Disable(); // temp
+						controlPosRight->Disable();  // temp
 						autonomousDriveState = move_5;
+						autonomousDriveState = end; // temp
 					}
 					break;
 
@@ -411,6 +434,11 @@ private:
 	{
 		enteredTelopInit = true;
 		driveSystem = new DriveSystem(leftEncoder, rightEncoder, leftDrive, rightDrive);
+
+		controlPosLeft->Disable(); // stop all motion
+		controlPosRight->Disable();
+		controlRotLeft->Disable();  // disable the drive PID controllers
+		controlRotRight->Disable();
 
 		//disable nudge position control to start
 		controlPosNudgeLeft->Disable();
@@ -567,7 +595,7 @@ public:
         first_iteration = true;
         bool is_calibrating = imu->IsCalibrating();
 		if ( !is_calibrating ) {
-			Wait( 0.3 );
+//			Wait( 0.3 );
 			imu->ZeroYaw();
 			first_iteration = false;
 		}
